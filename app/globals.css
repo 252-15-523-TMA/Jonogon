@@ -79,3 +79,11 @@ input, select, textarea, button {
   animation: feature-carousel-loop 26s linear infinite;
   will-change: transform;
 }
+
+.citizen-service-faq-summary::-webkit-details-marker {
+  display: none;
+}
+
+.citizen-service-faq[open] .citizen-service-faq-chevron {
+  transform: rotate(180deg);
+}

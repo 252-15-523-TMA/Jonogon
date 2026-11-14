@@ -33,7 +33,9 @@ import {
   Globe2,
   Award,
   X,
-  ShieldCheck
+  ShieldCheck,
+  CircleHelp,
+  ChevronDown
 } from "lucide-react";
 
 interface SpeechRecognitionResultLike {
@@ -150,6 +152,12 @@ type CitizenServiceCard = {
   descriptionEn: string;
   stepsBn: string[];
   stepsEn: string[];
+  faqs: {
+    questionBn: string;
+    questionEn: string;
+    stepsBn: string[];
+    stepsEn: string[];
+  }[];
   actions: { labelBn: string; labelEn: string; href: string }[];
 };
 
@@ -174,6 +182,56 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Submit the application with required documents and keep its reference number.",
       "To verify a birth record, use the official eVerify service with the 17-digit registration number and date of birth.",
     ],
+    faqs: [
+      {
+        questionBn: "জন্মনিবন্ধনের জন্য কীভাবে আবেদন করব?",
+        questionEn: "How do I apply for birth registration?",
+        stepsBn: [
+          "BDRIS খুলে জন্ম নিবন্ধন থেকে আবেদন নির্বাচন করুন। জন্মস্থান, স্থায়ী ঠিকানা বা দূতাবাসের উপযুক্ত বিকল্প বেছে নিন।",
+          "আবেদনকারীর নাম বাংলা ও ইংরেজিতে, জন্মতারিখ, বাবা-মায়ের তথ্য এবং ঠিকানা পূরণ করুন।",
+          "প্রয়োজনীয় কাগজপত্র যুক্ত করে সব তথ্য ভালোভাবে মিলিয়ে আবেদন জমা দিন।",
+          "আবেদন নম্বর সংরক্ষণ করুন এবং পোর্টাল চাইলে নিজের মোবাইল বা ইমেইলে আসা OTP দিন।",
+          "আবেদনের অবস্থা BDRIS-এ দেখুন; প্রয়োজনে নির্বাচিত নিবন্ধক কার্যালয়ে যোগাযোগ করুন।",
+        ],
+        stepsEn: [
+          "Open BDRIS and choose Birth Registration > Application. Select the applicable place of birth, permanent address, or embassy option.",
+          "Enter the applicant's name in Bangla and English, date of birth, parents' details, and address.",
+          "Attach the required documents, review every detail, and submit the application.",
+          "Save the application reference and enter an OTP sent to your own phone or email if the portal asks for one.",
+          "Check the application status in BDRIS and contact the selected registrar's office if needed.",
+        ],
+      },
+      {
+        questionBn: "আগের জন্মসনদ কীভাবে খুঁজে বা যাচাই করব?",
+        questionEn: "How do I find or verify an existing birth certificate?",
+        stepsBn: [
+          "এই সেবার সরকারি eVerify লিংক খুলুন।",
+          "১৭ সংখ্যার জন্মনিবন্ধন নম্বর ও জন্মতারিখ লিখুন, তারপর ছবির কোড পূরণ করে যাচাই করুন।",
+          "দেখানো নাম ও জন্মতারিখ মিলিয়ে নিন। ফল না এলে সংশ্লিষ্ট নিবন্ধক কার্যালয়ে যোগাযোগ করুন।",
+          "নম্বর বা জন্মতারিখ Jonogon-এ লিখবেন না; এগুলো শুধু সরকারি যাচাই পোর্টালে দিন।",
+        ],
+        stepsEn: [
+          "Open the official eVerify link on this service card.",
+          "Enter the 17-digit birth registration number and date of birth, complete the image check, and submit.",
+          "Compare the displayed name and date of birth. If no result appears, contact the relevant registrar's office.",
+          "Do not enter the number or date of birth in Jonogon; use them only on the government verification portal.",
+        ],
+      },
+      {
+        questionBn: "জন্মনিবন্ধনের অবস্থা, সংশোধন বা পুনর্মুদ্রণ কোথায় পাব?",
+        questionEn: "Where do I check status, request a correction, or reprint a birth record?",
+        stepsBn: [
+          "BDRIS হোমপেজে জন্ম নিবন্ধনের বর্তমান অবস্থা, তথ্য সংশোধন বা সনদ পুনর্মুদ্রণের সঠিক মেনু বেছে নিন।",
+          "পোর্টাল যে আবেদন নম্বর বা নিবন্ধন তথ্য চায় তা সেখানে দিন এবং নির্দেশনা অনুসরণ করুন।",
+          "সংশোধন বা পুনর্মুদ্রণের ক্ষেত্রে প্রয়োজনীয় কাগজপত্র ও স্থানীয় নিবন্ধক কার্যালয়ের নির্দেশনা যাচাই করুন।",
+        ],
+        stepsEn: [
+          "On the BDRIS home page, choose the menu for application status, information correction, or certificate reprint.",
+          "Enter the application reference or registration details requested by the portal and follow its prompts.",
+          "For corrections or reprints, check the required documents and instructions from the local registrar's office.",
+        ],
+      },
+    ],
     actions: [
       { labelBn: "BDRIS আবেদন ও সেবা", labelEn: "BDRIS applications and services", href: "https://bdris.gov.bd/" },
       { labelBn: "জন্মসনদ যাচাই", labelEn: "Verify a birth record", href: "https://everify.bdris.gov.bd/" },
@@ -196,9 +254,56 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Complete the online form using the details on your NID or English birth certificate.",
       "Pay through a payment method listed on the official portal and attend your enrolment appointment.",
     ],
+    faqs: [
+      {
+        questionBn: "ই-পাসপোর্টে অ্যাকাউন্ট খুলে আবেদন কীভাবে করব?",
+        questionEn: "How do I create an account and apply for an e-Passport?",
+        stepsBn: [
+          "সরকারি e-Passport পোর্টালে যান এবং Apply Online for e-Passport / Re-Issue নির্বাচন করুন।",
+          "প্রথমবার হলে নিজের ইমেইল দিয়ে অ্যাকাউন্ট তৈরি করুন এবং অ্যাক্টিভেশন ইমেইল এলে সেটি সম্পন্ন করুন; আগে অ্যাকাউন্ট থাকলে সাইন ইন করুন।",
+          "বর্তমান এলাকার পাসপোর্ট অফিস নির্বাচন করে NID বা ইংরেজি জন্মনিবন্ধনের তথ্য অনুযায়ী ফরম পূরণ করুন।",
+          "ফরম জমা দিয়ে পোর্টালে দেখানো অনুমোদিত মাধ্যমে ফি দিন, আবেদন নম্বর সংরক্ষণ করুন এবং নির্ধারিত এনরোলমেন্টে যান।",
+        ],
+        stepsEn: [
+          "Open the official e-Passport portal and choose Apply Online for e-Passport / Re-Issue.",
+          "For a first application, create an account with your own email and complete the activation email; otherwise sign in.",
+          "Select the passport office for your area and fill the form to match your NID or English birth certificate.",
+          "Submit the form, pay using a method shown on the portal, save the application reference, and attend the assigned enrolment.",
+        ],
+      },
+      {
+        questionBn: "পাসপোর্ট আবেদনের অবস্থা কীভাবে দেখব?",
+        questionEn: "How do I check my passport application status?",
+        stepsBn: [
+          "e-Passport পোর্টালের Check Status পেজ খুলুন।",
+          "আবেদনের Application ID অথবা Online Registration ID এবং আবেদনকারীর জন্মতারিখ দিন।",
+          "Check চাপুন। Application ID সাধারণত এনরোলমেন্টের পর পাওয়া ডেলিভারি স্লিপে থাকে।",
+        ],
+        stepsEn: [
+          "Open Check Status on the e-Passport portal.",
+          "Enter the Application ID or Online Registration ID and the applicant's date of birth.",
+          "Select Check. The Application ID is usually on the delivery slip issued after enrolment.",
+        ],
+      },
+      {
+        questionBn: "রি-ইস্যু বা তথ্য সংশোধনের আগে কী করব?",
+        questionEn: "What should I do before a re-issue or information correction?",
+        stepsBn: [
+          "পোর্টালের নির্দেশনা ও বর্তমান কাগজপত্রের তালিকা পড়ুন।",
+          "রি-ইস্যু আবেদন শুরু করে আগের পাসপোর্টের তথ্য দিন; নাম বা জন্মতারিখের মতো পরিবর্তনের ক্ষেত্রে সমর্থনকারী সরকারি নথি প্রস্তুত রাখুন।",
+          "ফি, এনরোলমেন্ট এবং জমা দেওয়ার নিয়ম পোর্টালে নিশ্চিত করুন; কোনো দালালকে পাসওয়ার্ড বা OTP দেবেন না।",
+        ],
+        stepsEn: [
+          "Read the portal's current instructions and document checklist.",
+          "Start a re-issue application and enter your previous passport details; prepare supporting official documents for changes such as name or date of birth.",
+          "Confirm payment, enrolment, and submission instructions on the portal. Never share your password or OTP with an agent.",
+        ],
+      },
+    ],
     actions: [
       { labelBn: "ই-পাসপোর্ট আবেদন ও রি-ইস্যু", labelEn: "Apply or re-issue an e-Passport", href: "https://www.epassport.gov.bd/" },
       { labelBn: "সরকারি নির্দেশনা", labelEn: "Official instructions", href: "https://www.epassport.gov.bd/instructions/instructions" },
+      { labelBn: "পাসপোর্ট আবেদনের অবস্থা", labelEn: "Check passport application status", href: "https://epassport.gov.bd/authorization/application-status" },
     ],
   },
   {
@@ -217,6 +322,50 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Choose new NID application if you are registering; claim an online account if you already have an NID.",
       "Sign in to the Election Commission portal for correction, re-issue, or card download services.",
       "Enter your NID number, password, or OTP only on the official portal.",
+    ],
+    faqs: [
+      {
+        questionBn: "নতুন NID-এর জন্য কীভাবে নিবন্ধন শুরু করব?",
+        questionEn: "How do I start a new NID registration?",
+        stepsBn: [
+          "বাংলাদেশ নির্বাচন কমিশনের NID পোর্টাল খুলে Apply for a National ID / Get Started নির্বাচন করুন।",
+          "নাম, জন্মতারিখ ও ছবির কোডসহ প্রাথমিক তথ্য দিয়ে Continue চাপুন।",
+          "পোর্টালের ধাপে ধাপে ফরম পূরণ করে আবেদন জমা দিন এবং পরবর্তী পরিচয় যাচাই বা অফিসে উপস্থিতির নির্দেশনা অনুসরণ করুন।",
+        ],
+        stepsEn: [
+          "Open the Election Commission NID portal and choose Apply for a National ID / Get Started.",
+          "Enter the initial details, such as name and date of birth, complete the image check, and select Continue.",
+          "Complete the remaining form, submit it, and follow the portal's instructions for identity verification or an office visit.",
+        ],
+      },
+      {
+        questionBn: "আগে থেকেই NID থাকলে অ্যাকাউন্ট খুলব বা লগইন করব কীভাবে?",
+        questionEn: "How do I claim an account or sign in if I already have an NID?",
+        stepsBn: [
+          "NID পোর্টালে Claim Account নির্বাচন করুন।",
+          "নিজের NID নম্বর বা ফর্ম নম্বর, জন্মতারিখ এবং ছবির কোড দিন; পোর্টালের যাচাই ধাপ সম্পন্ন করুন।",
+          "অ্যাকাউন্ট তৈরি হলে NID বা ইউজারনেম ও পাসওয়ার্ড দিয়ে লগইন করুন। পাসওয়ার্ড বা OTP কারও সঙ্গে শেয়ার করবেন না।",
+        ],
+        stepsEn: [
+          "Choose Claim Account on the NID portal.",
+          "Enter your own NID or form number, date of birth, and image code, then complete the portal's verification steps.",
+          "After claiming the account, sign in with your NID or username and password. Do not share passwords or OTPs.",
+        ],
+      },
+      {
+        questionBn: "স্মার্ট কার্ডের অবস্থা বা NID সংশোধন কীভাবে দেখব?",
+        questionEn: "How do I check smart-card status or request an NID correction?",
+        stepsBn: [
+          "স্মার্ট কার্ডের অবস্থা জানতে NID পোর্টালের Smart Card Status পেজ খুলুন।",
+          "NID বা ফর্ম নম্বর, জন্মতারিখ এবং ছবির কোড দিয়ে Submit করুন।",
+          "তথ্য সংশোধন বা রি-ইস্যুর জন্য অ্যাকাউন্টে লগইন করে সংশ্লিষ্ট আবেদন নির্বাচন করুন এবং চাওয়া প্রমাণপত্র যুক্ত করুন।",
+        ],
+        stepsEn: [
+          "Open Smart Card Status on the NID portal.",
+          "Enter your NID or form number and date of birth, complete the image check, and submit.",
+          "For a correction or re-issue, sign in, choose the relevant application, and attach the evidence requested by the portal.",
+        ],
+      },
     ],
     actions: [
       { labelBn: "নির্বাচন কমিশনের NID পোর্টাল", labelEn: "Election Commission NID portal", href: "https://services.nidw.gov.bd/nid-pub/" },
@@ -240,6 +389,38 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Apply for a learner licence and complete the required tests and next steps.",
       "Choose the portal service for a smart card, renewal, or duplicate licence.",
     ],
+    faqs: [
+      {
+        questionBn: "BRTA পোর্টালে অ্যাকাউন্ট খুলব বা লগইন করব কীভাবে?",
+        questionEn: "How do I register or sign in to the BRTA portal?",
+        stepsBn: [
+          "BRTA Service Portal খুলে Register নির্বাচন করুন; আগে অ্যাকাউন্ট থাকলে Login বেছে নিন।",
+          "নিবন্ধনের সময় নিজের জন্মতারিখ, NID নম্বর এবং সেই NID-তে নিবন্ধিত মোবাইল নম্বর দিন।",
+          "পোর্টালের যাচাই কোড, ইমেইল বা OTP ধাপ সম্পন্ন করে অ্যাকাউন্ট সক্রিয় করুন, তারপর লগইন করুন।",
+        ],
+        stepsEn: [
+          "Open BRTA Service Portal and choose Register; choose Login if you already have an account.",
+          "During registration, enter your date of birth, NID number, and a mobile number registered to that NID.",
+          "Complete the portal's security-code, email, or OTP steps to activate the account, then sign in.",
+        ],
+      },
+      {
+        questionBn: "লার্নার লাইসেন্স থেকে স্মার্টকার্ড পর্যন্ত কীভাবে এগোব?",
+        questionEn: "How do I proceed from a learner licence to a smart card?",
+        stepsBn: [
+          "লগইন করে Driving License মেনু থেকে Learner License Application খুলুন।",
+          "পোর্টালে চাওয়া ছবি, মেডিকেল সার্টিফিকেট, পরিচয়পত্র এবং ঠিকানার প্রমাণ প্রস্তুত করে আবেদন জমা দিন।",
+          "নির্ধারিত পরীক্ষা ও পরবর্তী অনুমোদনের ধাপ সম্পন্ন হলে Application for Smart Card সেবা ব্যবহার করুন।",
+          "আবেদন, পেমেন্ট এবং পরীক্ষার অবস্থা নিজের BRTA অ্যাকাউন্টে দেখুন।",
+        ],
+        stepsEn: [
+          "Sign in and open Driving License > Learner License Application.",
+          "Prepare the photo, medical certificate, identity document, and address proof requested by the portal, then submit the application.",
+          "Complete the required test and approval steps, then use Application for Smart Card.",
+          "Check application, payment, and test status in your BRTA account.",
+        ],
+      },
+    ],
     actions: [
       { labelBn: "BRTA Service Portal", labelEn: "BRTA Service Portal", href: "https://bsp.brta.gov.bd/bsp/" },
     ],
@@ -260,6 +441,38 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Search e-Porcha using the division, district, upazila, mouza, and khatian details.",
       "After an ownership change, apply through e-Mutation and keep the application reference.",
       "Check application status and next steps on the relevant government portal.",
+    ],
+    faqs: [
+      {
+        questionBn: "ই-পর্চায় নির্দিষ্ট খতিয়ান কীভাবে খুঁজব?",
+        questionEn: "How do I search for a specific khatian in e-Porcha?",
+        stepsBn: [
+          "এই কার্ডের e-Porcha লিংক খুলুন এবং খতিয়ান অনুসন্ধান বা Search অপশন বেছে নিন।",
+          "বিভাগ, জেলা, উপজেলা, মৌজা এবং জরিপের ধরন নির্বাচন করুন।",
+          "পোর্টাল যে খতিয়ান নম্বর, দাগ নম্বর বা মালিকের তথ্য চায় তা দিয়ে অনুসন্ধান করুন এবং ফলাফল মিলিয়ে দেখুন।",
+          "কপি দরকার হলে পোর্টালের কপি/আবেদন ধাপ অনুসরণ করুন; ফি দেওয়ার আগে সেবার ধরন ও পরিমাণ যাচাই করুন।",
+        ],
+        stepsEn: [
+          "Open the e-Porcha link on this card and choose the khatian search option.",
+          "Select division, district, upazila, mouza, and survey type.",
+          "Search with the khatian number, plot number, or owner details requested by the portal, then review the result.",
+          "If you need a copy, follow the portal's copy/application steps and confirm the service and fee before paying.",
+        ],
+      },
+      {
+        questionBn: "জমির মালিকানা বদলের পর নামজারি কীভাবে করব?",
+        questionEn: "How do I request mutation after a land ownership change?",
+        stepsBn: [
+          "সরকারি ই-নামজারি পোর্টালে যান; নতুন হলে নিবন্ধন করুন, আগে অ্যাকাউন্ট থাকলে লগইন করুন।",
+          "নতুন আবেদন নির্বাচন করে জমি ও মালিকানা পরিবর্তনের তথ্য এবং পোর্টালে চাওয়া দলিল দিন।",
+          "আবেদন নম্বর সংরক্ষণ করুন এবং একই পোর্টালে অবস্থা, নোটিশ ও পরবর্তী ফি দেখুন।",
+        ],
+        stepsEn: [
+          "Open the government e-Mutation portal; register if new or sign in to an existing account.",
+          "Choose a new application and enter the land and ownership-change details with the documents requested by the portal.",
+          "Save the application reference and check status, notices, and any next fee in the same portal.",
+        ],
+      },
     ],
     actions: [
       { labelBn: "ই-পর্চা খতিয়ান সেবা", labelEn: "e-Porcha land records", href: "https://e-porcha.com/" },
@@ -283,6 +496,38 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Complete the application with details that match your passport and address.",
       "Follow the listed government fee and verification process, then check your status.",
     ],
+    faqs: [
+      {
+        questionBn: "পুলিশ ক্লিয়ারেন্সে নিবন্ধন, লগইন ও আবেদন কীভাবে করব?",
+        questionEn: "How do I register, sign in, and apply for police clearance?",
+        stepsBn: [
+          "বাংলাদেশ পুলিশের PCC পোর্টালে Registration নির্বাচন করে নিজের অ্যাকাউন্ট তৈরি করুন।",
+          "অ্যাকাউন্টে লগইন করে Apply নির্বাচন করুন এবং ব্যক্তিগত তথ্য ও বর্তমান/স্থায়ী ঠিকানা পূরণ করুন।",
+          "পাসপোর্টের তথ্যের সঙ্গে মিল রেখে পোর্টালে চাওয়া কাগজপত্র যুক্ত করুন এবং আবেদন জমা দিন।",
+          "পোর্টালে দেখানো ফি ও যাচাই প্রক্রিয়া অনুসরণ করুন; আবেদনের রেফারেন্স সংরক্ষণ করুন।",
+        ],
+        stepsEn: [
+          "Choose Registration on the Bangladesh Police PCC portal and create your own account.",
+          "Sign in, choose Apply, and enter your personal details plus current and permanent addresses.",
+          "Add the documents requested by the portal and make sure details match your passport before submitting.",
+          "Follow the listed fee and verification steps, and keep the application reference.",
+        ],
+      },
+      {
+        questionBn: "আবেদনের অবস্থা বা পাসওয়ার্ড কীভাবে সামলাব?",
+        questionEn: "How do I check an application or recover my password?",
+        stepsBn: [
+          "PCC পোর্টালে লগইন করে নিজের আবেদন বা আবেদন-ইতিহাস মেনু খুলুন।",
+          "আবেদন নম্বর ও পোর্টালের অবস্থা দেখে পরবর্তী নির্দেশনা অনুসরণ করুন।",
+          "পাসওয়ার্ড ভুলে গেলে পোর্টালের Forgot Password নির্দেশনা অনুসরণ করুন; OTP বা পাসওয়ার্ড কারও সঙ্গে শেয়ার করবেন না।",
+        ],
+        stepsEn: [
+          "Sign in to the PCC portal and open your application or application-history section.",
+          "Review the application reference and status, then follow any next instructions shown.",
+          "If you forget your password, use the portal's Forgot Password flow. Never share an OTP or password.",
+        ],
+      },
+    ],
     actions: [
       { labelBn: "বাংলাদেশ পুলিশের PCC পোর্টাল", labelEn: "Bangladesh Police PCC portal", href: "https://pcc.police.gov.bd/" },
     ],
@@ -303,6 +548,36 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Choose eTIN registration or e-Return on the NBR eTax portal.",
       "Enter your profile and tax information in the government system.",
       "After submission, keep your return and payment receipts in your official account.",
+    ],
+    faqs: [
+      {
+        questionBn: "e-TIN অ্যাকাউন্ট বা নিবন্ধন কীভাবে শুরু করব?",
+        questionEn: "How do I start e-TIN registration or sign in?",
+        stepsBn: [
+          "NBR eTax পোর্টাল খুলে eTIN বা Register as a taxpayer নির্বাচন করুন।",
+          "নতুন হলে Registration নির্বাচন করে পোর্টালে চাওয়া পরিচয় ও যোগাযোগের তথ্য দিন; আগে অ্যাকাউন্ট থাকলে Sign in করুন।",
+          "যাচাইয়ের ধাপ সম্পন্ন করে TIN সনদ তৈরি বা ডাউনলোড করুন এবং নিজের অ্যাকাউন্টে সংরক্ষণ করুন।",
+        ],
+        stepsEn: [
+          "Open the NBR eTax portal and choose eTIN or Register as a taxpayer.",
+          "If new, choose Registration and enter the identity and contact details requested; otherwise sign in.",
+          "Complete verification, generate or download the TIN certificate, and keep it in your own account.",
+        ],
+      },
+      {
+        questionBn: "e-Return জমা ও যাচাই কীভাবে করব?",
+        questionEn: "How do I file and verify an e-Return?",
+        stepsBn: [
+          "eTax পোর্টালে eReturn নির্বাচন করে লগইন বা অ্যাকাউন্ট নিবন্ধন করুন।",
+          "পোর্টালের ধাপে আয়, কর-ছাড় ও পেমেন্টের তথ্য পূরণ করে রিটার্ন জমা দিন।",
+          "জমার নিশ্চিতকরণ ও রসিদ সংরক্ষণ করুন; প্রয়োজনে ReturnVerify/PSR সেবা দিয়ে জমার অবস্থা দেখুন।",
+        ],
+        stepsEn: [
+          "Choose eReturn on the eTax portal and sign in or register for an account.",
+          "Enter income, tax-credit, and payment details through the portal's steps, then submit the return.",
+          "Save the submission confirmation and receipts; use ReturnVerify/PSR if you need to check filing status.",
+        ],
+      },
     ],
     actions: [
       { labelBn: "NBR eTax সেবা", labelEn: "NBR eTax services", href: "https://etaxnbr.gov.bd/" },
@@ -361,6 +636,7 @@ export default function JonogonApp() {
 
   // NRB Remittance Calculator State
   const [remittanceAmount, setRemittanceAmount] = useState(1000);
+  const [showCitizenServiceHelp, setShowCitizenServiceHelp] = useState(false);
 
   // Sync dark mode class
   useEffect(() => {
@@ -1614,19 +1890,85 @@ export default function JonogonApp() {
             {/* Citizen documents and official government services */}
             <section aria-labelledby="citizen-services-heading" className="mt-8 space-y-4">
               <div className="rounded-2xl p-5 sm:p-6 border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mb-2" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
-                  <FileText className="w-3 h-3" />
-                  {t("নাগরিক নথি ও সরকারি সেবা", "CITIZEN DOCUMENTS & SERVICES")}
-                </span>
-                <h3 id="citizen-services-heading" className="text-xl font-bold" style={{ color: "var(--text-main)" }}>
-                  {t("আপনার গুরুত্বপূর্ণ সরকারি নথি", "Your Important Government Documents")}
-                </h3>
-                <p className="mt-1 text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
-                  {t(
-                    "জন্মনিবন্ধন, পাসপোর্ট, NID, লাইসেন্স, ভূমি রেকর্ডসহ প্রয়োজনীয় সেবার ধাপ ও সরকারি পোর্টাল এক জায়গায়।",
-                    "Process guides and official portals for birth registration, passports, NID, licences, land records, and more."
-                  )}
-                </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mb-2" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                      <FileText className="w-3 h-3" />
+                      {t("নাগরিক নথি ও সরকারি সেবা", "CITIZEN DOCUMENTS & SERVICES")}
+                    </span>
+                    <h3 id="citizen-services-heading" className="text-xl font-bold" style={{ color: "var(--text-main)" }}>
+                      {t("আপনার গুরুত্বপূর্ণ সরকারি নথি", "Your Important Government Documents")}
+                    </h3>
+                    <p className="mt-1 text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
+                      {t(
+                        "জন্মনিবন্ধন, পাসপোর্ট, NID, লাইসেন্স, ভূমি রেকর্ডসহ প্রয়োজনীয় সেবার ধাপ ও সরকারি পোর্টাল এক জায়গায়।",
+                        "Process guides and official portals for birth registration, passports, NID, licences, land records, and more."
+                      )}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowCitizenServiceHelp((show) => !show)}
+                    className="shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-colors hover:opacity-80"
+                    style={{
+                      borderColor: showCitizenServiceHelp ? "var(--primary-green)" : "var(--border-color)",
+                      backgroundColor: showCitizenServiceHelp ? "var(--primary-green-light)" : "var(--background)",
+                      color: "var(--primary-green)"
+                    }}
+                    aria-label={showCitizenServiceHelp
+                      ? t("ধাপে ধাপে সহায়িকা বন্ধ করুন", "Close step-by-step help")
+                      : t("ধাপে ধাপে সহায়িকা খুলুন", "Open step-by-step help")}
+                    aria-expanded={showCitizenServiceHelp}
+                    aria-controls="citizen-services-help-panel"
+                    title={showCitizenServiceHelp
+                      ? t("সহায়িকা বন্ধ করুন", "Close help")
+                      : t("সেবা ব্যবহারের ধাপ ও সাধারণ প্রশ্ন দেখুন", "View service steps and common questions")}
+                  >
+                    <CircleHelp className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {showCitizenServiceHelp && (
+                  <div id="citizen-services-help-panel" className="mt-5 p-4 sm:p-5 rounded-2xl border" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)" }}>
+                    <div className="mb-4">
+                      <h4 className="text-base font-bold" style={{ color: "var(--text-main)" }}>
+                        {t("ধাপে ধাপে সহায়িকা ও সাধারণ প্রশ্ন", "Step-by-Step Help & Common Questions")}
+                      </h4>
+                      <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                        {t(
+                          "একটি সেবা ও প্রশ্ন খুলে সহজ ধাপগুলো দেখুন। চূড়ান্ত কাগজপত্র, ফি এবং নিয়ম সংশ্লিষ্ট পোর্টালে মিলিয়ে নিন।",
+                          "Open a service and question to see its steps. Confirm current documents, fees, and rules on the relevant portal."
+                        )}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      {CITIZEN_SERVICES.map((service) => (
+                        <div key={service.id} className="p-3 rounded-xl border" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                          <h5 className="text-sm font-bold mb-2" style={{ color: "var(--primary-green)" }}>
+                            {t(service.titleBn, service.titleEn)}
+                          </h5>
+                          <div className="space-y-2">
+                            {service.faqs.map((faq) => {
+                              const faqSteps = lang === "bn" ? faq.stepsBn : faq.stepsEn;
+                              return (
+                                <details key={faq.questionEn} className="citizen-service-faq rounded-lg border overflow-hidden" style={{ borderColor: "var(--border-color)" }}>
+                                  <summary className="citizen-service-faq-summary list-none cursor-pointer px-3 py-2.5 flex items-center justify-between gap-3 text-xs font-semibold" style={{ color: "var(--text-main)" }}>
+                                    <span>{t(faq.questionBn, faq.questionEn)}</span>
+                                    <ChevronDown className="citizen-service-faq-chevron w-3.5 h-3.5 shrink-0 transition-transform" />
+                                  </summary>
+                                  <ol className="list-decimal pl-7 pr-3 pb-3 space-y-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
+                                    {faqSteps.map((step, index) => <li key={`${faq.questionEn}-${index}`}>{step}</li>)}
+                                  </ol>
+                                </details>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div role="note" className="mt-4 p-3 rounded-xl border text-xs" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)", color: "var(--text-main)" }}>
                   <strong>{t("গোপনীয়তা:", "Privacy:")}</strong>{" "}
                   {t(

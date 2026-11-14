@@ -76,21 +76,6 @@ input, select, textarea, button {
 }
 
 .feature-carousel-track {
-  animation: feature-carousel-loop 38s linear infinite;
-}
-
-.feature-carousel-track:hover,
-.feature-carousel-track:focus-within,
-.feature-carousel-viewport:active .feature-carousel-track {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .feature-carousel-track {
-    animation: none;
-  }
-
-  .feature-carousel-group[aria-hidden="true"] {
-    display: none;
-  }
+  animation: feature-carousel-loop 26s linear infinite;
+  will-change: transform;
 }

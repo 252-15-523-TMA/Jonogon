@@ -153,6 +153,9 @@ type CitizenServiceCard = {
   actions: { labelBn: string; labelEn: string; href: string }[];
 };
 
+const stripFeatureEmoji = (label: string) =>
+  label.replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\uFE0E\uFE0F\u200D]/gu, "").replace(/\s{2,}/g, " ").trim();
+
 const CITIZEN_SERVICES: CitizenServiceCard[] = [
   {
     id: "birth-registration",
@@ -824,7 +827,7 @@ export default function JonogonApp() {
                           }}
                         >
                           <IconComponent className="w-3.5 h-3.5" />
-                          <span>{tab.label}</span>
+                          <span>{stripFeatureEmoji(tab.label)}</span>
                         </button>
                       );
                     })}

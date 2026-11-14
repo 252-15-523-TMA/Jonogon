@@ -636,7 +636,7 @@ export default function JonogonApp() {
 
   // NRB Remittance Calculator State
   const [remittanceAmount, setRemittanceAmount] = useState(1000);
-  const [showCitizenServiceHelp, setShowCitizenServiceHelp] = useState(false);
+  const [openCitizenServiceHelpId, setOpenCitizenServiceHelpId] = useState<string | null>(null);
 
   // Sync dark mode class
   useEffect(() => {
@@ -1890,63 +1890,85 @@ export default function JonogonApp() {
             {/* Citizen documents and official government services */}
             <section aria-labelledby="citizen-services-heading" className="mt-8 space-y-4">
               <div className="rounded-2xl p-5 sm:p-6 border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mb-2" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
-                      <FileText className="w-3 h-3" />
-                      {t("নাগরিক নথি ও সরকারি সেবা", "CITIZEN DOCUMENTS & SERVICES")}
-                    </span>
-                    <h3 id="citizen-services-heading" className="text-xl font-bold" style={{ color: "var(--text-main)" }}>
-                      {t("আপনার গুরুত্বপূর্ণ সরকারি নথি", "Your Important Government Documents")}
-                    </h3>
-                    <p className="mt-1 text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
-                      {t(
-                        "জন্মনিবন্ধন, পাসপোর্ট, NID, লাইসেন্স, ভূমি রেকর্ডসহ প্রয়োজনীয় সেবার ধাপ ও সরকারি পোর্টাল এক জায়গায়।",
-                        "Process guides and official portals for birth registration, passports, NID, licences, land records, and more."
-                      )}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowCitizenServiceHelp((show) => !show)}
-                    className="shrink-0 w-10 h-10 rounded-full border flex items-center justify-center transition-colors hover:opacity-80"
-                    style={{
-                      borderColor: showCitizenServiceHelp ? "var(--primary-green)" : "var(--border-color)",
-                      backgroundColor: showCitizenServiceHelp ? "var(--primary-green-light)" : "var(--background)",
-                      color: "var(--primary-green)"
-                    }}
-                    aria-label={showCitizenServiceHelp
-                      ? t("ধাপে ধাপে সহায়িকা বন্ধ করুন", "Close step-by-step help")
-                      : t("ধাপে ধাপে সহায়িকা খুলুন", "Open step-by-step help")}
-                    aria-expanded={showCitizenServiceHelp}
-                    aria-controls="citizen-services-help-panel"
-                    title={showCitizenServiceHelp
-                      ? t("সহায়িকা বন্ধ করুন", "Close help")
-                      : t("সেবা ব্যবহারের ধাপ ও সাধারণ প্রশ্ন দেখুন", "View service steps and common questions")}
-                  >
-                    <CircleHelp className="w-5 h-5" />
-                  </button>
-                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mb-2" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                  <FileText className="w-3 h-3" />
+                  {t("নাগরিক নথি ও সরকারি সেবা", "CITIZEN DOCUMENTS & SERVICES")}
+                </span>
+                <h3 id="citizen-services-heading" className="text-xl font-bold" style={{ color: "var(--text-main)" }}>
+                  {t("আপনার গুরুত্বপূর্ণ সরকারি নথি", "Your Important Government Documents")}
+                </h3>
+                <p className="mt-1 text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
+                  {t(
+                    "জন্মনিবন্ধন, পাসপোর্ট, NID, লাইসেন্স ও ভূমি রেকর্ডের সেবা এক জায়গায়। প্রতিটি কার্ডের প্রশ্নচিহ্নে সেই সেবার আলাদা ধাপে-ধাপে সহায়িকা পাবেন।",
+                    "Find services for birth registration, passports, NID, licences, and land records in one place. Use each card's question mark for its own step-by-step help."
+                  )}
+                </p>
 
-                {showCitizenServiceHelp && (
-                  <div id="citizen-services-help-panel" className="mt-5 p-4 sm:p-5 rounded-2xl border" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)" }}>
-                    <div className="mb-4">
-                      <h4 className="text-base font-bold" style={{ color: "var(--text-main)" }}>
-                        {t("ধাপে ধাপে সহায়িকা ও সাধারণ প্রশ্ন", "Step-by-Step Help & Common Questions")}
-                      </h4>
-                      <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-                        {t(
-                          "একটি সেবা ও প্রশ্ন খুলে সহজ ধাপগুলো দেখুন। চূড়ান্ত কাগজপত্র, ফি এবং নিয়ম সংশ্লিষ্ট পোর্টালে মিলিয়ে নিন।",
-                          "Open a service and question to see its steps. Confirm current documents, fees, and rules on the relevant portal."
-                        )}
-                      </p>
-                    </div>
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                      {CITIZEN_SERVICES.map((service) => (
-                        <div key={service.id} className="p-3 rounded-xl border" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
-                          <h5 className="text-sm font-bold mb-2" style={{ color: "var(--primary-green)" }}>
+                <div role="note" className="mt-4 p-3 rounded-xl border text-xs" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)", color: "var(--text-main)" }}>
+                  <strong>{t("গোপনীয়তা:", "Privacy:")}</strong>{" "}
+                  {t(
+                    "এই সাইটে ব্যক্তিগত NID, জন্মনিবন্ধন বা পাসপোর্ট নম্বর, পাসওয়ার্ড কিংবা OTP দেবেন না। আবেদন, ব্যক্তিগত তথ্য দেখা বা যাচাই করতে নিচের সরকারি পোর্টাল ব্যবহার করুন।",
+                    "Do not enter personal NID, birth registration, or passport numbers, passwords, or OTPs here. Use the official portals below to apply, access, or verify records."
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {CITIZEN_SERVICES.map((service) => {
+                  const ServiceIcon = service.icon;
+                  const steps = lang === "bn" ? service.stepsBn : service.stepsEn;
+                  const isHelpOpen = openCitizenServiceHelpId === service.id;
+                  const helpPanelId = `citizen-service-help-${service.id}`;
+
+                  return (
+                    <article key={service.id} className="rounded-2xl p-4 border shadow-sm flex flex-col" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                      <div className="flex items-start justify-between gap-2 mb-2.5">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <span className="p-2 rounded-xl shrink-0" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                            <ServiceIcon className="w-4 h-4" />
+                          </span>
+                          <h4 className="text-sm font-bold" style={{ color: "var(--text-main)" }}>
                             {t(service.titleBn, service.titleEn)}
+                          </h4>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setOpenCitizenServiceHelpId((current) => current === service.id ? null : service.id)}
+                          className="shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-colors hover:opacity-80"
+                          style={{
+                            borderColor: isHelpOpen ? "var(--primary-green)" : "var(--border-color)",
+                            backgroundColor: isHelpOpen ? "var(--primary-green-light)" : "var(--background)",
+                            color: "var(--primary-green)"
+                          }}
+                          aria-label={isHelpOpen
+                            ? t(`${service.titleBn} সহায়িকা বন্ধ করুন`, `Close ${service.titleEn} help`)
+                            : t(`${service.titleBn} সম্পর্কিত ধাপ ও প্রশ্ন দেখুন`, `View steps and questions for ${service.titleEn}`)}
+                          aria-expanded={isHelpOpen}
+                          aria-controls={helpPanelId}
+                          title={isHelpOpen
+                            ? t("সহায়িকা বন্ধ করুন", "Close help")
+                            : t("এই সেবার ধাপ ও সাধারণ প্রশ্ন দেখুন", "View this service's steps and common questions")}
+                        >
+                          <CircleHelp className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+                        {t(service.descriptionBn, service.descriptionEn)}
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1.5 text-xs" style={{ color: "var(--text-main)" }}>
+                        {steps.map((step) => <li key={step}>{step}</li>)}
+                      </ol>
+                      {isHelpOpen && (
+                        <div id={helpPanelId} className="mt-4 p-3 rounded-xl border" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)" }}>
+                          <h5 className="text-xs font-bold mb-1" style={{ color: "var(--primary-green)" }}>
+                            {t("ধাপে ধাপে সহায়িকা ও সাধারণ প্রশ্ন", "Step-by-Step Help & Common Questions")}
                           </h5>
+                          <p className="text-[10px] mb-2.5" style={{ color: "var(--text-muted)" }}>
+                            {t(
+                              "প্রশ্ন খুলে ধাপগুলো দেখুন। বর্তমান কাগজপত্র, ফি ও নিয়ম সংশ্লিষ্ট পোর্টালে যাচাই করুন।",
+                              "Open a question to see its steps. Confirm current documents, fees, and rules on the service portal."
+                            )}
+                          </p>
                           <div className="space-y-2">
                             {service.faqs.map((faq) => {
                               const faqSteps = lang === "bn" ? faq.stepsBn : faq.stepsEn;
@@ -1964,41 +1986,7 @@ export default function JonogonApp() {
                             })}
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div role="note" className="mt-4 p-3 rounded-xl border text-xs" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)", color: "var(--text-main)" }}>
-                  <strong>{t("গোপনীয়তা:", "Privacy:")}</strong>{" "}
-                  {t(
-                    "এই সাইটে ব্যক্তিগত NID, জন্মনিবন্ধন বা পাসপোর্ট নম্বর, পাসওয়ার্ড কিংবা OTP দেবেন না। আবেদন, ব্যক্তিগত তথ্য দেখা বা যাচাই করতে নিচের সরকারি পোর্টাল ব্যবহার করুন।",
-                    "Do not enter personal NID, birth registration, or passport numbers, passwords, or OTPs here. Use the official portals below to apply, access, or verify records."
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {CITIZEN_SERVICES.map((service) => {
-                  const ServiceIcon = service.icon;
-                  const steps = lang === "bn" ? service.stepsBn : service.stepsEn;
-
-                  return (
-                    <article key={service.id} className="rounded-2xl p-4 border shadow-sm flex flex-col" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
-                      <div className="flex items-center gap-2.5 mb-2.5">
-                        <span className="p-2 rounded-xl" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
-                          <ServiceIcon className="w-4 h-4" />
-                        </span>
-                        <h4 className="text-sm font-bold" style={{ color: "var(--text-main)" }}>
-                          {t(service.titleBn, service.titleEn)}
-                        </h4>
-                      </div>
-                      <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
-                        {t(service.descriptionBn, service.descriptionEn)}
-                      </p>
-                      <ol className="list-decimal pl-4 space-y-1.5 text-xs" style={{ color: "var(--text-main)" }}>
-                        {steps.map((step) => <li key={step}>{step}</li>)}
-                      </ol>
+                      )}
                       <div className="mt-auto pt-4 space-y-2">
                         {service.actions.map((action) => (
                           <a

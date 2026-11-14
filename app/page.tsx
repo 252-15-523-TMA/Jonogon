@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ShieldAlert,
   AlertTriangle,
@@ -35,6 +35,35 @@ import {
   X,
   ShieldCheck
 } from "lucide-react";
+
+interface SpeechRecognitionResultLike {
+  readonly isFinal: boolean;
+  readonly length: number;
+  readonly [index: number]: { readonly transcript: string };
+}
+
+interface SpeechRecognitionEventLike {
+  readonly resultIndex: number;
+  readonly results: ArrayLike<SpeechRecognitionResultLike>;
+}
+
+interface SpeechRecognitionLike {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  suppressEmptyEnd?: boolean;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onerror: ((event: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type SpeechRecognitionConstructorLike = new () => SpeechRecognitionLike;
+type SpeechRecognitionWindow = Window & {
+  SpeechRecognition?: SpeechRecognitionConstructorLike;
+  webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
+};
 
 // Mock Data for Essential Commodities (Live Bazaar Watch)
 const BAZAAR_DATA = [
@@ -130,6 +159,8 @@ export default function JonogonApp() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceLanguage, setVoiceLanguage] = useState<"bn" | "en">("bn");
+  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   // CivicSignal Form State
   const [newTitle, setNewTitle] = useState("");
@@ -170,19 +201,109 @@ export default function JonogonApp() {
     }
   }, [darkMode]);
 
-  // Handle Bangla / English Voice Simulation
+  // Capture live speech using the browser's speech recognition service.
   const handleVoiceToggle = () => {
-    if (!isRecordingVoice) {
-      setIsRecordingVoice(true);
+    if (speechRecognitionRef.current) {
+      speechRecognitionRef.current.stop();
+      setIsRecordingVoice(false);
+      return;
+    }
+
+    const SpeechRecognition = (window as SpeechRecognitionWindow).SpeechRecognition
+      ?? (window as SpeechRecognitionWindow).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceTranscript(t(
+        "এই ব্রাউজারে ভয়েস ইনপুট সমর্থিত নয়। Chrome বা Edge ব্যবহার করে দেখুন।",
+        "Voice input is not supported in this browser. Try Chrome or Edge."
+      ));
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    let hasRecognizedSpeech = false;
+    let hasRecognitionError = false;
+    recognition.lang = voiceLanguage === "bn" ? "bn-BD" : "en-US";
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let index = 0; index < event.results.length; index += 1) {
+        transcript += event.results[index][0].transcript;
+      }
+
+      transcript = transcript.trim();
+      if (transcript) {
+        hasRecognizedSpeech = true;
+        setSearchQuery(transcript);
+        setVoiceTranscript(transcript);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      hasRecognitionError = true;
+      if (speechRecognitionRef.current === recognition) {
+        speechRecognitionRef.current = null;
+      }
+      const messages: Record<string, [string, string]> = {
+        "not-allowed": ["মাইক্রোফোন ব্যবহারের অনুমতি দিন, তারপর আবার চেষ্টা করুন।", "Allow microphone access, then try again."],
+        "service-not-allowed": ["ব্রাউজারের স্পিচ সার্ভিস ব্যবহার করা যাচ্ছে না।", "The browser's speech service is unavailable."],
+        "audio-capture": ["কোনো মাইক্রোফোন পাওয়া যায়নি।", "No microphone was found."],
+        "no-speech": ["কোনো কথা শোনা যায়নি। আবার বলুন।", "No speech was detected. Please try again."],
+        "language-not-supported": ["এই ভাষার স্পিচ রিকগনিশন সমর্থিত নয়।", "Speech recognition for this language is not supported."],
+        network: ["স্পিচ সার্ভিসে সংযোগ করা যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।", "Could not connect to the speech service. Check your internet connection."],
+      };
+      const message = messages[event.error];
+      if (event.error !== "aborted") {
+        setVoiceTranscript(message ? t(message[0], message[1]) : t(
+          "ভয়েস ইনপুটে সমস্যা হয়েছে। আবার চেষ্টা করুন।",
+          "Voice input failed. Please try again."
+        ));
+      }
+      setIsRecordingVoice(false);
+    };
+
+    recognition.onend = () => {
+      if (speechRecognitionRef.current === recognition) {
+        speechRecognitionRef.current = null;
+      }
+      setIsRecordingVoice(false);
+      if (!hasRecognizedSpeech && !hasRecognitionError && !recognition.suppressEmptyEnd) {
+        setVoiceTranscript(t("কোনো কথা ধরা যায়নি। আবার চেষ্টা করুন।", "No speech was detected. Please try again."));
+      }
+    };
+
+    try {
       setVoiceTranscript(t("শুনছি... কথা বলুন...", "Listening... speak now..."));
-      setTimeout(() => {
-        setVoiceTranscript(t("ই-পাসপোর্ট ফি এবং প্রয়োজনীয় কাগজপত্র কী?", "What are the requirements and fee for e-Passport?"));
-        setIsRecordingVoice(false);
-        setSearchQuery(t("ই-পাসপোর্ট ফি ও আবেদন", "e-Passport fee and application"));
-      }, 2500);
-    } else {
+      setIsRecordingVoice(true);
+      speechRecognitionRef.current = recognition;
+      recognition.start();
+    } catch {
+      hasRecognitionError = true;
+      speechRecognitionRef.current = null;
+      setIsRecordingVoice(false);
+      setVoiceTranscript(t(
+        "মাইক্রোফোন চালু করা যায়নি। অনুমতি পরীক্ষা করে আবার চেষ্টা করুন।",
+        "Could not start the microphone. Check its permission and try again."
+      ));
+    }
+  };
+
+  const handleVoiceLanguageToggle = () => {
+    const nextLanguage = voiceLanguage === "bn" ? "en" : "bn";
+    if (speechRecognitionRef.current) {
+      const activeRecognition = speechRecognitionRef.current;
+      speechRecognitionRef.current = null;
+      activeRecognition.suppressEmptyEnd = true;
+      activeRecognition.stop();
       setIsRecordingVoice(false);
     }
+    setVoiceLanguage(nextLanguage);
+    setVoiceTranscript(lang === "bn"
+      ? nextLanguage === "bn" ? "ভয়েস ইনপুটের ভাষা বাংলা করা হয়েছে।" : "ভয়েস ইনপুটের ভাষা ইংরেজি করা হয়েছে।"
+      : nextLanguage === "bn" ? "Voice input language set to Bangla." : "Voice input language set to English."
+    );
   };
 
   // Submit Civic Signal Report
@@ -432,7 +553,7 @@ export default function JonogonApp() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder={t("কী সেবা খুঁজছেন? (উদা: ই-পাসপোর্ট ফি, জন্ম নিবন্ধন, টিসিবি দর...)", "Search any public service (e.g. e-Passport fee, birth certificate, TCB rates...)")}
-                    className="w-full pl-10 pr-24 py-2.5 rounded-xl border text-xs sm:text-sm outline-none transition-all shadow-sm focus:ring-1"
+                    className="w-full pl-10 pr-40 py-2.5 rounded-xl border text-xs sm:text-sm outline-none transition-all shadow-sm focus:ring-1"
                     style={{
                       backgroundColor: "var(--background)",
                       borderColor: "var(--border-color)",
@@ -440,8 +561,23 @@ export default function JonogonApp() {
                     }}
                   />
                   <div className="absolute right-1.5 flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={handleVoiceLanguageToggle}
+                      className="px-2 py-1.5 rounded-lg text-[10px] font-bold transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}
+                      aria-label={voiceLanguage === "bn"
+                        ? t("ভয়েসের ভাষা বাংলা। ইংরেজিতে বদলান", "Voice language Bangla. Switch to English")
+                        : t("ভয়েসের ভাষা ইংরেজি। বাংলায় বদলান", "Voice language English. Switch to Bangla")}
+                      title={voiceLanguage === "bn"
+                        ? t("ভয়েসের ভাষা বাংলা", "Voice input language: Bangla")
+                        : t("ভয়েসের ভাষা ইংরেজি", "Voice input language: English")}
+                    >
+                      {voiceLanguage === "bn" ? "বাংলা" : "EN"}
+                    </button>
                     {/* Voice Assistant Button */}
                     <button
+                      type="button"
                       onClick={handleVoiceToggle}
                       className={`p-1.5 rounded-lg transition-all ${
                         isRecordingVoice ? "animate-pulse text-white" : ""
@@ -450,7 +586,13 @@ export default function JonogonApp() {
                         backgroundColor: isRecordingVoice ? "var(--alert-red)" : "var(--primary-green-light)",
                         color: isRecordingVoice ? "#FFFFFF" : "var(--primary-green)"
                       }}
-                      title={t("বাংলায় মুখে বলুন (Speak in Bangla)", "Speak query via Voice")}
+                      aria-label={isRecordingVoice
+                        ? t("শোনা বন্ধ করুন", "Stop listening")
+                        : voiceLanguage === "bn" ? t("বাংলায় বলুন", "Speak in Bangla") : t("ইংরেজিতে বলুন", "Speak in English")}
+                      aria-pressed={isRecordingVoice}
+                      title={isRecordingVoice
+                        ? t("শোনা বন্ধ করতে ক্লিক করুন", "Click to stop listening")
+                        : voiceLanguage === "bn" ? t("বাংলায় ভয়েসে অনুসন্ধান করুন", "Search by speaking Bangla") : t("ইংরেজিতে ভয়েসে অনুসন্ধান করুন", "Search by speaking English")}
                     >
                       <Mic className="w-3.5 h-3.5" />
                     </button>
@@ -465,7 +607,7 @@ export default function JonogonApp() {
 
                 {/* Voice Transcript Toast */}
                 {voiceTranscript && (
-                  <div className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs border" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)", color: "var(--primary-green)" }}>
+                  <div role="status" aria-live="polite" className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs border" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)", color: "var(--primary-green)" }}>
                     <Volume2 className="w-3.5 h-3.5 animate-bounce" />
                     <span className="font-medium">{voiceTranscript}</span>
                   </div>

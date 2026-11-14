@@ -421,7 +421,8 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       },
     ],
     actions: [
-      { labelBn: "BRTA Service Portal", labelEn: "BRTA Service Portal", href: "https://bsp.brta.gov.bd/bsp/?lan=en" },
+      { labelBn: "BRTA Service Portal", labelEn: "BRTA Service Portal", href: "https://bsp.brta.gov.bd/?lan=en" },
+      { labelBn: "ই-ড্রাইভিং টিউটোরিয়াল", labelEn: "E-Driving Tutorial", href: "https://brta.gov.bd/pages/static-pages/6922dfc3933eb65569e23dce" },
     ],
   },
   {

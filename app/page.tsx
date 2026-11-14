@@ -141,6 +141,172 @@ const INITIAL_REPORTS = [
   }
 ];
 
+type CitizenServiceCard = {
+  id: string;
+  icon: React.ComponentType<{ className?: string }>;
+  titleBn: string;
+  titleEn: string;
+  descriptionBn: string;
+  descriptionEn: string;
+  stepsBn: string[];
+  stepsEn: string[];
+  actions: { labelBn: string; labelEn: string; href: string }[];
+};
+
+const CITIZEN_SERVICES: CitizenServiceCard[] = [
+  {
+    id: "birth-registration",
+    icon: FileText,
+    titleBn: "জন্ম ও মৃত্যু নিবন্ধন",
+    titleEn: "Birth & Death Registration",
+    descriptionBn: "নতুন নিবন্ধন, সংশোধন, পুনর্মুদ্রণ, আবেদনের অবস্থা ও জন্মসনদ যাচাই।",
+    descriptionEn: "Apply, correct, reprint, check application status, or verify a birth record.",
+    stepsBn: [
+      "BDRIS-এ জন্ম বা মৃত্যু নিবন্ধনের সঠিক আবেদনটি বেছে নিন।",
+      "প্রয়োজনীয় কাগজপত্রসহ আবেদন জমা দিয়ে আবেদন নম্বর সংরক্ষণ করুন।",
+      "জন্মসনদ যাচাই করতে সরকারি eVerify-তে ১৭ সংখ্যার নিবন্ধন নম্বর ও জন্মতারিখ দিন।",
+    ],
+    stepsEn: [
+      "Choose the right birth or death registration service in BDRIS.",
+      "Submit the application with required documents and keep its reference number.",
+      "To verify a birth record, use the official eVerify service with the 17-digit registration number and date of birth.",
+    ],
+    actions: [
+      { labelBn: "BDRIS আবেদন ও সেবা", labelEn: "BDRIS applications and services", href: "https://bdris.gov.bd/" },
+      { labelBn: "জন্মসনদ যাচাই", labelEn: "Verify a birth record", href: "https://everify.bdris.gov.bd/" },
+    ],
+  },
+  {
+    id: "passport",
+    icon: Globe2,
+    titleBn: "ই-পাসপোর্ট",
+    titleEn: "e-Passport",
+    descriptionBn: "নতুন পাসপোর্ট, রি-ইস্যু, নির্দেশনা, কাগজপত্র ও ফি সম্পর্কে জানুন।",
+    descriptionEn: "Find the official application, re-issue, instructions, document checklist, and fee information.",
+    stepsBn: [
+      "আবেদনের আগে আপনার এলাকার পাসপোর্ট অফিস ও আবেদন-যোগ্যতা যাচাই করুন।",
+      "NID বা ইংরেজি জন্মনিবন্ধনের তথ্য অনুযায়ী অনলাইন ফরম পূরণ করুন।",
+      "শুধু সরকারি পোর্টালের অনুমোদিত মাধ্যমে ফি দিন এবং নির্ধারিত এনরোলমেন্টে উপস্থিত হন।",
+    ],
+    stepsEn: [
+      "Check the passport office for your area and your eligibility before applying.",
+      "Complete the online form using the details on your NID or English birth certificate.",
+      "Pay through a payment method listed on the official portal and attend your enrolment appointment.",
+    ],
+    actions: [
+      { labelBn: "ই-পাসপোর্ট আবেদন ও রি-ইস্যু", labelEn: "Apply or re-issue an e-Passport", href: "https://www.epassport.gov.bd/" },
+      { labelBn: "সরকারি নির্দেশনা", labelEn: "Official instructions", href: "https://www.epassport.gov.bd/instructions/instructions" },
+    ],
+  },
+  {
+    id: "nid",
+    icon: ShieldCheck,
+    titleBn: "জাতীয় পরিচয়পত্র (NID)",
+    titleEn: "National ID (NID)",
+    descriptionBn: "নতুন NID আবেদন, অ্যাকাউন্ট দাবি, তথ্য সংশোধন, রি-ইস্যু ও কার্ড ডাউনলোড।",
+    descriptionEn: "Apply for a new NID, claim an account, request corrections or re-issue, and access card services.",
+    stepsBn: [
+      "নতুন ভোটার হলে নতুন NID আবেদনের অপশন বেছে নিন; NID থাকলে অনলাইন অ্যাকাউন্ট দাবি করুন।",
+      "সংশোধন, রি-ইস্যু বা ডাউনলোডের জন্য নির্বাচন কমিশনের পোর্টালে সাইন ইন করে নির্দেশনা অনুসরণ করুন।",
+      "আপনার NID নম্বর, পাসওয়ার্ড বা OTP শুধু সরকারি পোর্টালে দিন।",
+    ],
+    stepsEn: [
+      "Choose new NID application if you are registering; claim an online account if you already have an NID.",
+      "Sign in to the Election Commission portal for correction, re-issue, or card download services.",
+      "Enter your NID number, password, or OTP only on the official portal.",
+    ],
+    actions: [
+      { labelBn: "নির্বাচন কমিশনের NID পোর্টাল", labelEn: "Election Commission NID portal", href: "https://services.nidw.gov.bd/nid-pub/" },
+      { labelBn: "স্মার্ট কার্ডের অবস্থা দেখুন", labelEn: "Check smart card status", href: "https://services.nidw.gov.bd/nid-pub/card-status" },
+    ],
+  },
+  {
+    id: "driving-license",
+    icon: Compass,
+    titleBn: "ড্রাইভিং লাইসেন্স ও BRTA সেবা",
+    titleEn: "Driving Licence & BRTA Services",
+    descriptionBn: "লার্নার লাইসেন্স, স্মার্টকার্ড, নবায়ন, ডুপ্লিকেট এবং যানবাহন-সংক্রান্ত সেবা।",
+    descriptionEn: "Learner licence, smart card, renewal, duplicate licence, and vehicle services.",
+    stepsBn: [
+      "BRTA Service Portal-এ নাগরিক অ্যাকাউন্ট তৈরি বা সাইন ইন করুন।",
+      "লার্নার লাইসেন্সের আবেদন করে নির্ধারিত পরীক্ষা ও পরবর্তী ধাপ সম্পন্ন করুন।",
+      "স্মার্টকার্ড, নবায়ন বা ডুপ্লিকেটের জন্য পোর্টালের সংশ্লিষ্ট সেবা বেছে নিন।",
+    ],
+    stepsEn: [
+      "Create a citizen account or sign in to the BRTA Service Portal.",
+      "Apply for a learner licence and complete the required tests and next steps.",
+      "Choose the portal service for a smart card, renewal, or duplicate licence.",
+    ],
+    actions: [
+      { labelBn: "BRTA Service Portal", labelEn: "BRTA Service Portal", href: "https://bsp.brta.gov.bd/bsp/" },
+    ],
+  },
+  {
+    id: "land-records",
+    icon: MapPin,
+    titleBn: "ভূমির খতিয়ান ও নামজারি",
+    titleEn: "Land Records & Mutation",
+    descriptionBn: "ই-পর্চায় খতিয়ান খুঁজুন; মালিকানা পরিবর্তনের পর সরকারি ই-নামজারি সেবা ব্যবহার করুন।",
+    descriptionEn: "Search for a khatian through e-Porcha and use e-Mutation to update land records after an ownership change.",
+    stepsBn: [
+      "ই-পর্চায় বিভাগ, জেলা, উপজেলা, মৌজা ও খতিয়ানের তথ্য দিয়ে অনুসন্ধান করুন।",
+      "মালিকানা পরিবর্তন হলে ই-নামজারি পোর্টালে আবেদন করে আবেদন নম্বর সংরক্ষণ করুন।",
+      "আবেদনের অবস্থা ও পরবর্তী করণীয় সংশ্লিষ্ট সরকারি পোর্টালেই যাচাই করুন।",
+    ],
+    stepsEn: [
+      "Search e-Porcha using the division, district, upazila, mouza, and khatian details.",
+      "After an ownership change, apply through e-Mutation and keep the application reference.",
+      "Check application status and next steps on the relevant government portal.",
+    ],
+    actions: [
+      { labelBn: "ই-পর্চা খতিয়ান সেবা", labelEn: "e-Porcha land records", href: "https://www.eporcha.gov.bd/" },
+      { labelBn: "ই-নামজারি আবেদন ও অবস্থা", labelEn: "e-Mutation applications and status", href: "https://mutation.land.gov.bd/" },
+    ],
+  },
+  {
+    id: "police-clearance",
+    icon: Lock,
+    titleBn: "পুলিশ ক্লিয়ারেন্স",
+    titleEn: "Police Clearance Certificate",
+    descriptionBn: "বাংলাদেশ পুলিশের অনলাইন পোর্টালে নিবন্ধন, আবেদন ও আবেদনের নির্দেশনা।",
+    descriptionEn: "Register, apply, and follow the application instructions on the Bangladesh Police portal.",
+    stepsBn: [
+      "নিজের অ্যাকাউন্ট তৈরি করে পুলিশ ক্লিয়ারেন্স পোর্টালে সাইন ইন করুন।",
+      "পাসপোর্ট ও ঠিকানার সঙ্গে সামঞ্জস্য রেখে আবেদনপত্র পূরণ করুন।",
+      "পোর্টালে দেখানো সরকারি ফি ও যাচাই প্রক্রিয়া অনুসরণ করে অবস্থা দেখুন।",
+    ],
+    stepsEn: [
+      "Create your account and sign in to the Police Clearance portal.",
+      "Complete the application with details that match your passport and address.",
+      "Follow the listed government fee and verification process, then check your status.",
+    ],
+    actions: [
+      { labelBn: "বাংলাদেশ পুলিশের PCC পোর্টাল", labelEn: "Bangladesh Police PCC portal", href: "https://pcc.police.gov.bd/" },
+    ],
+  },
+  {
+    id: "tax-services",
+    icon: Calculator,
+    titleBn: "ই-টিআইএন ও আয়কর",
+    titleEn: "e-TIN & Income Tax",
+    descriptionBn: "NBR-এর পোর্টালে করদাতা নিবন্ধন, আয়কর রিটার্ন ও সংশ্লিষ্ট অনলাইন সেবা।",
+    descriptionEn: "Use the NBR portal for taxpayer registration, income tax returns, and related online services.",
+    stepsBn: [
+      "NBR eTax পোর্টালে eTIN নিবন্ধন বা e-Return সেবা বেছে নিন।",
+      "নিজের প্রোফাইল ও কর-সংক্রান্ত তথ্য সরকারি সিস্টেমে পূরণ করুন।",
+      "জমা দেওয়ার পর রিটার্ন ও পেমেন্টের রসিদ সরকারি অ্যাকাউন্টে সংরক্ষণ করুন।",
+    ],
+    stepsEn: [
+      "Choose eTIN registration or e-Return on the NBR eTax portal.",
+      "Enter your profile and tax information in the government system.",
+      "After submission, keep your return and payment receipts in your official account.",
+    ],
+    actions: [
+      { labelBn: "NBR eTax সেবা", labelEn: "NBR eTax services", href: "https://etaxnbr.gov.bd/" },
+    ],
+  },
+];
+
 export default function JonogonApp() {
   const [lang, setLang] = useState<"bn" | "en">("bn");
   const [darkMode, setDarkMode] = useState(false);
@@ -1428,6 +1594,73 @@ export default function JonogonApp() {
                 </div>
               </div>
             )}
+
+            {/* Citizen documents and official government services */}
+            <section aria-labelledby="citizen-services-heading" className="mt-8 space-y-4">
+              <div className="rounded-2xl p-5 sm:p-6 border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mb-2" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                  <FileText className="w-3 h-3" />
+                  {t("নাগরিক নথি ও সরকারি সেবা", "CITIZEN DOCUMENTS & SERVICES")}
+                </span>
+                <h3 id="citizen-services-heading" className="text-xl font-bold" style={{ color: "var(--text-main)" }}>
+                  {t("আপনার গুরুত্বপূর্ণ সরকারি নথি", "Your Important Government Documents")}
+                </h3>
+                <p className="mt-1 text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
+                  {t(
+                    "জন্মনিবন্ধন, পাসপোর্ট, NID, লাইসেন্স, ভূমি রেকর্ডসহ প্রয়োজনীয় সেবার ধাপ ও সরকারি পোর্টাল এক জায়গায়।",
+                    "Process guides and official portals for birth registration, passports, NID, licences, land records, and more."
+                  )}
+                </p>
+                <div role="note" className="mt-4 p-3 rounded-xl border text-xs" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)", color: "var(--text-main)" }}>
+                  <strong>{t("গোপনীয়তা:", "Privacy:")}</strong>{" "}
+                  {t(
+                    "এই সাইটে ব্যক্তিগত NID, জন্মনিবন্ধন বা পাসপোর্ট নম্বর, পাসওয়ার্ড কিংবা OTP দেবেন না। আবেদন, ব্যক্তিগত তথ্য দেখা বা যাচাই করতে নিচের সরকারি পোর্টাল ব্যবহার করুন।",
+                    "Do not enter personal NID, birth registration, or passport numbers, passwords, or OTPs here. Use the official portals below to apply, access, or verify records."
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {CITIZEN_SERVICES.map((service) => {
+                  const ServiceIcon = service.icon;
+                  const steps = lang === "bn" ? service.stepsBn : service.stepsEn;
+
+                  return (
+                    <article key={service.id} className="rounded-2xl p-4 border shadow-sm flex flex-col" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                      <div className="flex items-center gap-2.5 mb-2.5">
+                        <span className="p-2 rounded-xl" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                          <ServiceIcon className="w-4 h-4" />
+                        </span>
+                        <h4 className="text-sm font-bold" style={{ color: "var(--text-main)" }}>
+                          {t(service.titleBn, service.titleEn)}
+                        </h4>
+                      </div>
+                      <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+                        {t(service.descriptionBn, service.descriptionEn)}
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-1.5 text-xs" style={{ color: "var(--text-main)" }}>
+                        {steps.map((step) => <li key={step}>{step}</li>)}
+                      </ol>
+                      <div className="mt-auto pt-4 space-y-2">
+                        {service.actions.map((action) => (
+                          <a
+                            key={action.href}
+                            href={action.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="w-full px-3 py-2 rounded-lg border text-xs font-semibold flex items-center justify-between gap-2 hover:opacity-80 transition-opacity"
+                            style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--primary-green)" }}
+                          >
+                            <span>{t(action.labelBn, action.labelEn)}</span>
+                            <ArrowRight className="w-3.5 h-3.5 shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
           </div>
         ) : (
           /* 🏛️ GOVCOPILOT ADMIN WORKSPACE (100% Fully Translated) */

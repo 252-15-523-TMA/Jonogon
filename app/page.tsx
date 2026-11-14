@@ -34,7 +34,6 @@ import {
   Award,
   X,
   ShieldCheck,
-  CircleHelp,
   ChevronDown
 } from "lucide-react";
 
@@ -1921,8 +1920,8 @@ export default function JonogonApp() {
                   const helpPanelId = `citizen-service-help-${service.id}`;
 
                   return (
-                    <article key={service.id} className="rounded-2xl p-4 border shadow-sm flex flex-col" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
-                      <div className="flex items-start justify-between gap-2 mb-2.5">
+                    <article key={service.id} className="relative rounded-2xl p-4 border shadow-sm flex flex-col" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                      <div className="flex items-start gap-2.5 mb-2.5 pr-11">
                         <div className="flex min-w-0 items-center gap-2.5">
                           <span className="p-2 rounded-xl shrink-0" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
                             <ServiceIcon className="w-4 h-4" />
@@ -1931,27 +1930,27 @@ export default function JonogonApp() {
                             {t(service.titleBn, service.titleEn)}
                           </h4>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setOpenCitizenServiceHelpId((current) => current === service.id ? null : service.id)}
-                          className="shrink-0 w-8 h-8 rounded-full border flex items-center justify-center transition-colors hover:opacity-80"
-                          style={{
-                            borderColor: isHelpOpen ? "var(--primary-green)" : "var(--border-color)",
-                            backgroundColor: isHelpOpen ? "var(--primary-green-light)" : "var(--background)",
-                            color: "var(--primary-green)"
-                          }}
-                          aria-label={isHelpOpen
-                            ? t(`${service.titleBn} সহায়িকা বন্ধ করুন`, `Close ${service.titleEn} help`)
-                            : t(`${service.titleBn} সম্পর্কিত ধাপ ও প্রশ্ন দেখুন`, `View steps and questions for ${service.titleEn}`)}
-                          aria-expanded={isHelpOpen}
-                          aria-controls={helpPanelId}
-                          title={isHelpOpen
-                            ? t("সহায়িকা বন্ধ করুন", "Close help")
-                            : t("এই সেবার ধাপ ও সাধারণ প্রশ্ন দেখুন", "View this service's steps and common questions")}
-                        >
-                          <CircleHelp className="w-4 h-4" />
-                        </button>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setOpenCitizenServiceHelpId((current) => current === service.id ? null : service.id)}
+                        className="absolute right-3 top-3 shrink-0 w-9 h-9 rounded-full border-2 flex items-center justify-center transition-colors hover:opacity-80"
+                        style={{
+                          borderColor: "var(--primary-green)",
+                          backgroundColor: isHelpOpen ? "var(--primary-green)" : "var(--primary-green-light)",
+                          color: "var(--primary-green)"
+                        }}
+                        aria-label={isHelpOpen
+                          ? t(`${service.titleBn} সহায়িকা বন্ধ করুন`, `Close ${service.titleEn} help`)
+                          : t(`${service.titleBn} সম্পর্কিত ধাপ ও প্রশ্ন দেখুন`, `View steps and questions for ${service.titleEn}`)}
+                        aria-expanded={isHelpOpen}
+                        aria-controls={helpPanelId}
+                        title={isHelpOpen
+                          ? t("সহায়িকা বন্ধ করুন", "Close help")
+                          : t("এই সেবার ধাপ ও সাধারণ প্রশ্ন দেখুন", "View this service's steps and common questions")}
+                      >
+                        <span aria-hidden="true" className={`text-base font-extrabold leading-none ${isHelpOpen ? "text-white" : ""}`}>?</span>
+                      </button>
                       <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
                         {t(service.descriptionBn, service.descriptionEn)}
                       </p>

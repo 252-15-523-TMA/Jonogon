@@ -259,7 +259,7 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Check application status and next steps on the relevant government portal.",
     ],
     actions: [
-      { labelBn: "ই-পর্চা খতিয়ান সেবা", labelEn: "e-Porcha land records", href: "https://www.eporcha.gov.bd/" },
+      { labelBn: "ই-পর্চা খতিয়ান সেবা", labelEn: "e-Porcha land records", href: "https://dlrms.land.gov.bd/" },
       { labelBn: "ই-নামজারি আবেদন ও অবস্থা", labelEn: "e-Mutation applications and status", href: "https://mutation.land.gov.bd/" },
     ],
   },

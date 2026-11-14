@@ -159,6 +159,7 @@ export default function JonogonApp() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [voiceLanguageNotice, setVoiceLanguageNotice] = useState(false);
   const [voiceLanguage, setVoiceLanguage] = useState<"bn" | "en">("bn");
   const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
@@ -275,6 +276,7 @@ export default function JonogonApp() {
     };
 
     try {
+      setVoiceLanguageNotice(false);
       setVoiceTranscript(t("শুনছি... কথা বলুন...", "Listening... speak now..."));
       setIsRecordingVoice(true);
       speechRecognitionRef.current = recognition;
@@ -300,10 +302,8 @@ export default function JonogonApp() {
       setIsRecordingVoice(false);
     }
     setVoiceLanguage(nextLanguage);
-    setVoiceTranscript(lang === "bn"
-      ? nextLanguage === "bn" ? "ভয়েস ইনপুটের ভাষা বাংলা করা হয়েছে।" : "ভয়েস ইনপুটের ভাষা ইংরেজি করা হয়েছে।"
-      : nextLanguage === "bn" ? "Voice input language set to Bangla." : "Voice input language set to English."
-    );
+    setVoiceTranscript("");
+    setVoiceLanguageNotice(true);
   };
 
   // Submit Civic Signal Report
@@ -606,10 +606,14 @@ export default function JonogonApp() {
                 </div>
 
                 {/* Voice Transcript Toast */}
-                {voiceTranscript && (
+                {(voiceTranscript || voiceLanguageNotice) && (
                   <div role="status" aria-live="polite" className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs border" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)", color: "var(--primary-green)" }}>
                     <Volume2 className="w-3.5 h-3.5 animate-bounce" />
-                    <span className="font-medium">{voiceTranscript}</span>
+                    <span className="font-medium">{voiceLanguageNotice
+                      ? voiceLanguage === "bn"
+                        ? t("ভয়েস ইনপুটের ভাষা বাংলা করা হয়েছে।", "Voice input language set to Bangla.")
+                        : t("ভয়েস ইনপুটের ভাষা ইংরেজি করা হয়েছে।", "Voice input language set to English.")
+                      : voiceTranscript}</span>
                   </div>
                 )}
               </div>

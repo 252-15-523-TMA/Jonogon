@@ -259,7 +259,7 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
       "Check application status and next steps on the relevant government portal.",
     ],
     actions: [
-      { labelBn: "ই-পর্চা খতিয়ান সেবা", labelEn: "e-Porcha land records", href: "https://dlrms.land.gov.bd/" },
+      { labelBn: "ই-পর্চা খতিয়ান সেবা", labelEn: "e-Porcha land records", href: "https://e-porcha.com/" },
       { labelBn: "ই-নামজারি আবেদন ও অবস্থা", labelEn: "e-Mutation applications and status", href: "https://mutation.land.gov.bd/" },
     ],
   },
@@ -596,6 +596,18 @@ export default function JonogonApp() {
     }
   };
 
+  const featureTabs = [
+    { id: "civic-signal", label: t("নাগরিক সিগন্যাল (অভিযোগ)", "CivicSignal (Reports)"), icon: AlertTriangle },
+    { id: "bazaar-watch", label: t("বাজার দর মনিটর", "Live Bazaar Watch"), icon: TrendingUp },
+    { id: "safe-report", label: t("নিরাপদ হুইসেলব্লোয়ার", "Whistleblower Shield"), icon: Lock },
+    { id: "rumor-buster", label: t("গুজব যাচাই", "RumorBuster BD"), icon: Eye },
+    { id: "nrb-gateway", label: t("প্রবাসী ও রেমিট্যান্স হাব", "NRB Expat Gateway"), icon: Globe2 },
+    { id: "fee-calculator", label: t("সরকারি ফি ও চালান কোড", "Gov Fee Calculator"), icon: Calculator },
+    { id: "doc-checker", label: t("AI ডকুমেন্ট ত্রুটি চেকার", "AI Doc Checker"), icon: FileCheck },
+    { id: "scam-detector", label: t("ভুয়া লিংক ও প্রতারণা ডিটেক্টর", "Scam & Link Detector"), icon: ShieldAlert },
+    { id: "volunteer-grid", label: t("ত্রাণ ও ভলান্টিয়ার নেটওয়ার্ক", "Youth & Relief Grid"), icon: HeartHandshake },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-200">
       {/* 🇧🇩 Top Gov Header Bar */}
@@ -785,39 +797,40 @@ export default function JonogonApp() {
               </div>
             </div>
 
-            {/* 🏷️ Navigation Tabs for Feature Categories */}
-            <div className="flex items-center space-x-1.5 overflow-x-auto pb-3 mb-6 border-b no-scrollbar text-xs" style={{ borderColor: "var(--border-color)" }}>
-              {[
-                { id: "civic-signal", label: t("🚨 নাগরিক সিগন্যাল (অভিযোগ)", "🚨 CivicSignal (Reports)"), icon: AlertTriangle },
-                { id: "bazaar-watch", label: t("🛒 বাজার দর মনিটর (সিন্ডিকেট রোধ)", "🛒 Live Bazaar Watch"), icon: TrendingUp },
-                { id: "safe-report", label: t("🛡️ নিরাপদ হুইসেলব্লোয়ার (ঘুষ রোধ)", "🛡️ Whistleblower Shield"), icon: Lock },
-                { id: "rumor-buster", label: t("🔍 গুজব যাচাই (ফ্যাক্ট-চেক)", "🔍 RumorBuster BD"), icon: Eye },
-                { id: "nrb-gateway", label: t("🌍 প্রবাসী ও রেমিট্যান্স হাব", "🌍 NRB Expat Gateway"), icon: Globe2 },
-                { id: "fee-calculator", label: t("💰 সরকারি ফি ও চালান কোড", "💰 Gov Fee Calculator"), icon: Calculator },
-                { id: "doc-checker", label: t("📑 AI ডকুমেন্ট ত্রুটি চেকার", "📑 AI Doc Checker"), icon: FileCheck },
-                { id: "scam-detector", label: t("🚨 ভুয়া লিংক ও প্রতারণা ডিটেক্টর", "🚨 Scam & Link Detector"), icon: ShieldAlert },
-                { id: "volunteer-grid", label: t("🤝 ত্রাণ ও ভলান্টিয়ার নেটওয়ার্ক", "🤝 Youth & Relief Grid"), icon: HeartHandshake }
-              ].map((tab) => {
-                const IconComponent = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
-                      isActive ? "shadow-sm" : "opacity-80 hover:opacity-100"
-                    }`}
-                    style={{
-                      backgroundColor: isActive ? "var(--primary-green)" : "var(--surface)",
-                      color: isActive ? "#FFFFFF" : "var(--text-main)",
-                      borderColor: isActive ? "var(--primary-green)" : "var(--border-color)"
-                    }}
+            {/* Looping feature carousel */}
+            <div role="region" aria-label={t("সেবার বিভাগ", "Service categories")} className="feature-carousel-viewport mb-6 overflow-x-auto no-scrollbar border-b text-xs" style={{ borderColor: "var(--border-color)" }}>
+              <div className="feature-carousel-track flex w-max">
+                {[false, true].map((isDuplicate) => (
+                  <div
+                    key={isDuplicate ? "duplicate" : "primary"}
+                    className="feature-carousel-group flex shrink-0 items-center gap-1.5 pr-1.5 pb-3"
+                    aria-hidden={isDuplicate || undefined}
                   >
-                    <IconComponent className="w-3.5 h-3.5" />
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+                    {featureTabs.map((tab) => {
+                      const IconComponent = tab.icon;
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          tabIndex={isDuplicate ? -1 : undefined}
+                          onClick={() => setActiveTab(tab.id as any)}
+                          className={`flex shrink-0 items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
+                            isActive ? "shadow-sm" : "opacity-80 hover:opacity-100"
+                          }`}
+                          style={{
+                            backgroundColor: isActive ? "var(--primary-green)" : "var(--surface)",
+                            color: isActive ? "#FFFFFF" : "var(--text-main)",
+                            borderColor: isActive ? "var(--primary-green)" : "var(--border-color)"
+                          }}
+                        >
+                          <IconComponent className="w-3.5 h-3.5" />
+                          <span>{tab.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* TAB CONTENT: 🚨 CivicSignal (Reports & Hazard Submission) */}

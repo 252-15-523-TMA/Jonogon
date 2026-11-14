@@ -65,3 +65,32 @@ input, select, textarea, button {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--text-muted);
 }
+
+@keyframes feature-carousel-loop {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.feature-carousel-track {
+  animation: feature-carousel-loop 38s linear infinite;
+}
+
+.feature-carousel-track:hover,
+.feature-carousel-track:focus-within,
+.feature-carousel-viewport:active .feature-carousel-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feature-carousel-track {
+    animation: none;
+  }
+
+  .feature-carousel-group[aria-hidden="true"] {
+    display: none;
+  }
+}

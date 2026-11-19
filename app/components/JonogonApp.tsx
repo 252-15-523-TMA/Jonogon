@@ -1455,16 +1455,32 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
             {isOfficialServicePage(activePage) && <OfficialServicePages page={activePage} lang={lang} />}
             {activePage === "home" && (
               <>
-            {/* AI Public Service Chat */}
-            <div className="rounded-2xl border p-4 shadow-sm sm:p-6" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
-              <div className="mx-auto max-w-6xl">
-                <span className="mb-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
-                  <Sparkles className="h-3 w-3" />
-                  {t("নাগরিক সেবা AI সহকারী", "Citizen Services AI Assistant")}
-                </span>
-                <CitizenAIChat lang={lang} nickname={greetingName} />
-              </div>
-            </div>
+                <section className="relative overflow-hidden rounded-3xl border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }} aria-labelledby="citizen-guide-heading">
+                  <div className="h-1.5 bg-gradient-to-r from-[#006A4E] via-[#006A4E] to-[#D14949]" />
+                  <div className="p-4 sm:p-6 lg:p-7">
+                    <div className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
+                      <div className="max-w-3xl">
+                        <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--primary-green)" }}>
+                          <Sparkles className="h-3 w-3" />{t("নাগরিক সেবা সহায়তা", "CITIZEN SERVICE DESK")}
+                        </span>
+                        <h1 id="citizen-guide-heading" className="text-xl font-extrabold tracking-tight sm:text-2xl" style={{ color: "var(--text-main)" }}>
+                          {t("সরকারি সেবা বুঝুন, পরের ধাপ জানুন", "Understand public services. Know your next step.")}
+                        </h1>
+                        <p className="mt-1.5 max-w-2xl text-xs leading-5 sm:text-sm" style={{ color: "var(--text-muted)" }}>
+                          {t("বাংলা বা ইংরেজিতে প্রশ্ন করুন—আবেদন, প্রয়োজনীয় নথি ও সঠিক সরকারি উৎস খুঁজতে সহায়তা নিন।", "Ask in Bangla or English for help with applications, required documents, and finding the right official source.")}
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2 lg:min-w-[330px]">
+                        {[
+                          ["01", t("জিজ্ঞাসা", "Ask")],
+                          ["02", t("নির্দেশনা দেখুন", "Review guidance")],
+                          ["03", t("সরকারি উৎস যাচাই", "Check official source")],
+                        ].map(([number, label]) => <div key={number} className="rounded-xl border px-2.5 py-2" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}><span className="block text-[9px] font-extrabold tracking-wider" style={{ color: "var(--primary-green)" }}>{number}</span><span className="mt-0.5 block text-[10px] font-semibold leading-4" style={{ color: "var(--text-main)" }}>{label}</span></div>)}
+                      </div>
+                    </div>
+                    <CitizenAIChat lang={lang} nickname={greetingName} />
+                  </div>
+                </section>
               </>
             )}
 

@@ -5,7 +5,7 @@ Jonogon uses Supabase Auth for accounts, Postgres for profiles, feedback, and no
 ## Current project setup
 
 - Supabase project: `vzharjvoihptapvjqcdi`
-- The accounts, feedback, notifications, and avatar-storage migration has been applied to the hosted project.
+- The accounts, feedback, notifications, avatar-storage, and optional citizen chat-history migrations have been applied to the hosted project.
 - Email confirmation is enabled.
 - The hosted Auth site URL is `https://jonogon.vercel.app`.
 - Allowed confirmation callbacks include `http://localhost:3000/auth/callback` and `https://jonogon.vercel.app/auth/callback`.
@@ -24,7 +24,7 @@ npx.cmd supabase db push --dry-run --remote
 npx.cmd supabase db push --remote
 ```
 
-The migration is `supabase/migrations/202611190001_accounts_feedback.sql`. It creates the required tables, the public avatar bucket, and row-level security policies. Users can read and update their own profile; the database-assigned `owner` role can read all profiles and feedback.
+The account migration is `supabase/migrations/202611190001_accounts_feedback.sql`. The optional chat migration is `supabase/migrations/202611200001_citizen_chat_history.sql`; it stores conversations only when a signed-in visitor opts in, and row-level security restricts each row to its owner. Run both migrations in a fresh Supabase project with `npx.cmd supabase db push --remote`.
 
 ## Configure Vercel
 

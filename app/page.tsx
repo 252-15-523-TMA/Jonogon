@@ -34,8 +34,18 @@ import {
   Award,
   X,
   ShieldCheck,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  Train,
+  Bus,
+  Ship,
+  Route,
+  ExternalLink,
+  Navigation,
+  Ticket
 } from "lucide-react";
+import { TRANSPORT_ROUTES, TransportRoute } from "./transport-data";
+import BangladeshTransportMap from "./components/BangladeshTransportMap";
 
 interface SpeechRecognitionResultLike {
   readonly isFinal: boolean;
@@ -592,8 +602,12 @@ export default function JonogonApp() {
   const [selectedReportForInspect, setSelectedReportForInspect] = useState<any | null>(null);
 
   const [activeTab, setActiveTab] = useState<
-    "civic-signal" | "bazaar-watch" | "safe-report" | "rumor-buster" | "nrb-gateway" | "fee-calculator" | "doc-checker" | "scam-detector" | "volunteer-grid"
-  >("civic-signal");
+    "transport-info" | "civic-signal" | "bazaar-watch" | "safe-report" | "rumor-buster" | "nrb-gateway" | "fee-calculator" | "doc-checker" | "scam-detector" | "volunteer-grid"
+  >("transport-info");
+  const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [selectedTransportRouteId, setSelectedTransportRouteId] = useState<string>("metro-line-6");
+  const [transportFilterType, setTransportFilterType] = useState<"all" | "metro" | "train" | "bus" | "intercity-bus" | "launch">("all");
+  const [transportSearchTerm, setTransportSearchTerm] = useState<string>("");
 
   // Translation helper function
   const t = (bnText: string, enText: string) => (lang === "bn" ? bnText : enText);
@@ -670,7 +684,7 @@ export default function JonogonApp() {
     let hasRecognizedSpeech = false;
     let hasRecognitionError = false;
     recognition.lang = voiceLanguage === "bn" ? "bn-BD" : "en-US";
-    recognition.continuous = true;
+    recognition.continuous = false;
     recognition.interimResults = true;
 
     recognition.onresult = (event) => {
@@ -876,6 +890,7 @@ export default function JonogonApp() {
   };
 
   const featureTabs = [
+    { id: "transport-info", label: t("যাতায়াত ও পরিবহন তথ্য", "Transport Info"), icon: Train },
     { id: "civic-signal", label: t("নাগরিক সিগন্যাল (অভিযোগ)", "CivicSignal (Reports)"), icon: AlertTriangle },
     { id: "bazaar-watch", label: t("বাজার দর মনিটর", "Live Bazaar Watch"), icon: TrendingUp },
     { id: "safe-report", label: t("নিরাপদ হুইসেলব্লোয়ার", "Whistleblower Shield"), icon: Lock },
@@ -887,8 +902,233 @@ export default function JonogonApp() {
     { id: "volunteer-grid", label: t("ত্রাণ ও ভলান্টিয়ার নেটওয়ার্ক", "Youth & Relief Grid"), icon: HeartHandshake },
   ];
 
+  const filteredTransportRoutes = TRANSPORT_ROUTES.filter((route) => {
+    const matchesType = transportFilterType === "all" || route.type === transportFilterType;
+    const matchesSearch =
+      !transportSearchTerm.trim() ||
+      route.titleBn.toLowerCase().includes(transportSearchTerm.toLowerCase()) ||
+      route.titleEn.toLowerCase().includes(transportSearchTerm.toLowerCase()) ||
+      route.routeSummaryBn.toLowerCase().includes(transportSearchTerm.toLowerCase()) ||
+      route.routeSummaryEn.toLowerCase().includes(transportSearchTerm.toLowerCase()) ||
+      route.stations.some(
+        (s) =>
+          s.nameBn.toLowerCase().includes(transportSearchTerm.toLowerCase()) ||
+          s.nameEn.toLowerCase().includes(transportSearchTerm.toLowerCase())
+      );
+    return matchesType && matchesSearch;
+  });
+
+  const currentSelectedRoute =
+    TRANSPORT_ROUTES.find((r) => r.id === selectedTransportRouteId) ||
+    filteredTransportRoutes[0] ||
+    TRANSPORT_ROUTES[0];
+
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-200">
+      {/* 🇧🇩 Slide-Out Side Navigation Drawer */}
+      {isSideMenuOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs transition-opacity duration-300"
+          onClick={() => setIsSideMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      <aside
+        className={`fixed top-0 left-0 bottom-0 z-50 w-80 max-w-[85vw] transform transition-transform duration-300 ease-in-out border-r shadow-2xl flex flex-col ${
+          isSideMenuOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        style={{
+          backgroundColor: "var(--surface)",
+          borderColor: "var(--border-color)",
+          color: "var(--text-main)",
+        }}
+        aria-label={t("প্রধান নেভিগেশন মেনু", "Main navigation menu")}
+      >
+        {/* Drawer Header */}
+        <div
+          className="p-4 border-b flex items-center justify-between"
+          style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg overflow-hidden shadow-xs flex items-center justify-center bg-[#006A4E] relative flex-shrink-0 border" style={{ borderColor: "var(--border-color)" }}>
+              <svg viewBox="0 0 50 30" className="w-full h-full">
+                <rect width="50" height="30" fill="#006A4E" />
+                <circle cx="23" cy="15" r="9" fill="#F42A41" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-base font-bold tracking-tight leading-tight" style={{ color: "var(--text-main)" }}>
+                {t("জনগণ মেনু", "Jonogon Menu")}
+              </h2>
+              <span className="text-[10px] font-medium block" style={{ color: "var(--text-muted)" }}>
+                {t("নাগরিক সেবা ও যাতায়াত হাব", "Citizen Services & Transit Hub")}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsSideMenuOpen(false)}
+            className="p-1.5 rounded-lg border transition-all hover:opacity-80 active:scale-95"
+            style={{ borderColor: "var(--border-color)", color: "var(--text-main)", backgroundColor: "var(--surface)" }}
+            aria-label={t("মেনু বন্ধ করুন", "Close menu")}
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Drawer Content */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          {/* Featured Service: Transport Info */}
+          <div>
+            <div className="px-2 py-1 text-[10px] font-bold tracking-wider uppercase" style={{ color: "var(--text-subtle)" }}>
+              {t("বিশেষ গণপরিবহন সেবা", "Featured Transit Intelligence")}
+            </div>
+            <button
+              onClick={() => {
+                setActivePortal("citizen");
+                setActiveTab("transport-info");
+                setIsSideMenuOpen(false);
+              }}
+              className="w-full mt-1.5 p-3 rounded-xl border text-left transition-all hover:shadow-sm active:scale-[0.99] flex items-center justify-between group cursor-pointer"
+              style={{
+                backgroundColor: activeTab === "transport-info" && activePortal === "citizen" ? "var(--primary-green-light)" : "var(--background)",
+                borderColor: activeTab === "transport-info" && activePortal === "citizen" ? "var(--primary-green)" : "var(--border-color)",
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-xs"
+                  style={{ backgroundColor: "var(--primary-green)" }}
+                >
+                  <Train className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold flex items-center gap-1.5" style={{ color: "var(--text-main)" }}>
+                    {t("যাতায়াত ও পরিবহন তথ্য", "Transport Info")}
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-600 text-white font-extrabold uppercase">
+                      {t("লাইভ ম্যাপ", "Live Map")}
+                    </span>
+                  </div>
+                  <div className="text-[10px] mt-0.5 line-clamp-1" style={{ color: "var(--text-muted)" }}>
+                    {t("মেট্রো, ট্রেন, বাস ও নৌপথের রুট ও ভাড়া", "Metro, train, bus, launch routes & fares")}
+                  </div>
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" style={{ color: "var(--primary-green)" }} />
+            </button>
+          </div>
+
+          {/* Core Citizen Services */}
+          <div>
+            <div className="px-2 py-1 text-[10px] font-bold tracking-wider uppercase" style={{ color: "var(--text-subtle)" }}>
+              {t("নাগরিক সেবা ও মডিউল", "Citizen Portals & Tools")}
+            </div>
+            <div className="space-y-1 mt-1">
+              {[
+                { id: "civic-signal", label: t("নাগরিক সিগন্যাল (অভিযোগ)", "CivicSignal (Hazard Reports)"), icon: AlertTriangle, desc: t("ম্যানহোল, বর্জ্য ও রাস্তা সমস্যা", "Road, drainage & waste hazards") },
+                { id: "bazaar-watch", label: t("বাজার দর মনিটর (টিসিবি)", "Bazaar Watch (TCB Prices)"), icon: TrendingUp, desc: t("নিত্যপ্রয়োজনীয় পণ্যের সরকারি দর", "Daily essential market rates") },
+                { id: "safe-report", label: t("নিরাপদ হুইসেলব্লোয়ার", "Whistleblower Shield"), icon: Lock, desc: t("দুর্নীতি ও ঘুষের বেনামী অভিযোগ", "Encrypted anonymous reporting") },
+                { id: "rumor-buster", label: t("গুজব যাচাই (ফ্যাক্ট চেক)", "RumorBuster BD"), icon: Eye, desc: t("গুজব ও বিভ্রান্তি প্রতিহতকরণ", "AI fact-checking engine") },
+                { id: "nrb-gateway", label: t("প্রবাসী ও রেমিট্যান্স হাব", "NRB Expat Gateway"), icon: Globe2, desc: t("প্রণোদনা হিসাব ও সুরক্ষা", "Remittance & land protection") },
+                { id: "fee-calculator", label: t("সরকারি ফি ক্যালকুলেটর", "Gov Fee Calculator"), icon: Calculator, desc: t("পাসপোর্ট, এনআইডি ও লাইসেন্স ফি", "Official government service fees") },
+                { id: "doc-checker", label: t("এআই নথি পরীক্ষক", "AI Document Checker"), icon: FileCheck, desc: t("কাগজপত্রের ত্রুটি ও স্পষ্টতা যাচাই", "Scan documents for omissions") },
+                { id: "scam-detector", label: t("স্ক্যাম ও লিংক ডিটেক্টর", "Scam & Fake Portal Detector"), icon: ShieldAlert, desc: t("ভুয়া ওয়েবসাইট ও প্রতারণা রোধ", "Detect fraudulent links") },
+                { id: "volunteer-grid", label: t("ত্রাণ ও যুব ভলান্টিয়ার", "Relief & Volunteers"), icon: HeartHandshake, desc: t("দুর্যোগ সহায়তা ও সমাজসেবা", "Youth civil protection grid") },
+              ].map((item) => {
+                const IconComponent = item.icon;
+                const isItemActive = activePortal === "citizen" && activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActivePortal("citizen");
+                      setActiveTab(item.id as any);
+                      setIsSideMenuOpen(false);
+                    }}
+                    className={`w-full p-2.5 rounded-xl border text-left transition-all flex items-center gap-2.5 cursor-pointer ${
+                      isItemActive ? "font-bold shadow-xs" : "opacity-85 hover:opacity-100 hover:bg-black/5 dark:hover:bg-white/5"
+                    }`}
+                    style={{
+                      borderColor: isItemActive ? "var(--primary-green)" : "transparent",
+                      backgroundColor: isItemActive ? "var(--primary-green-light)" : "transparent",
+                      color: isItemActive ? "var(--primary-green)" : "var(--text-main)",
+                    }}
+                  >
+                    <IconComponent className="w-4 h-4 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs truncate">{item.label}</div>
+                      <div className="text-[10px] opacity-75 truncate" style={{ color: "var(--text-muted)" }}>{item.desc}</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Administration */}
+          <div>
+            <div className="px-2 py-1 text-[10px] font-bold tracking-wider uppercase" style={{ color: "var(--text-subtle)" }}>
+              {t("প্রশাসন ও অডিট", "Administration & Audit")}
+            </div>
+            <button
+              onClick={() => {
+                setActivePortal("gov");
+                setIsSideMenuOpen(false);
+              }}
+              className={`w-full mt-1 p-2.5 rounded-xl border text-left transition-all flex items-center gap-2.5 cursor-pointer ${
+                activePortal === "gov" ? "font-bold shadow-xs" : "opacity-85 hover:opacity-100"
+              }`}
+              style={{
+                borderColor: activePortal === "gov" ? "var(--primary-green)" : "var(--border-color)",
+                backgroundColor: activePortal === "gov" ? "var(--primary-green-light)" : "var(--background)",
+                color: activePortal === "gov" ? "var(--primary-green)" : "var(--text-main)",
+              }}
+            >
+              <Building2 className="w-4 h-4 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="text-xs truncate">{t("সরকারি প্রশাসন ড্যাশবোর্ড (GovCopilot)", "GovCopilot Administration")}</div>
+                <div className="text-[10px] opacity-75 truncate" style={{ color: "var(--text-muted)" }}>
+                  {t("এআই টাস্ক ফোর্স ও রিয়েলটাইম ওয়ার্ক অর্ডার", "AI task force & realtime work orders")}
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Emergency Hotlines */}
+          <div className="p-3 rounded-xl border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+            <div className="text-[10px] font-bold uppercase mb-2" style={{ color: "var(--text-subtle)" }}>
+              {t("জরুরি জাতীয় হেল্পলাইনসমূহ", "National Emergency Helplines")}
+            </div>
+            <div className="grid grid-cols-3 gap-1.5 text-center">
+              {[
+                { num: "999", labelBn: "জরুরি সেবা", labelEn: "Emergency", color: "bg-red-500/10 text-red-600 border-red-200" },
+                { num: "333", labelBn: "নাগরিক সেবা", labelEn: "Gov Info", color: "bg-emerald-500/10 text-emerald-600 border-emerald-200" },
+                { num: "106", labelBn: "দুদক হটলাইন", labelEn: "Anti-Bribery", color: "bg-amber-500/10 text-amber-600 border-amber-200" },
+              ].map((hl) => (
+                <a
+                  key={hl.num}
+                  href={`tel:${hl.num}`}
+                  className={`p-1.5 rounded-lg border text-center transition-transform hover:scale-105 ${hl.color}`}
+                >
+                  <div className="text-xs font-black">{hl.num}</div>
+                  <div className="text-[9px] font-medium leading-tight">{lang === "bn" ? hl.labelBn : hl.labelEn}</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Drawer Footer */}
+        <div className="p-3 border-t text-[11px] flex items-center justify-between" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+          <span className="font-semibold" style={{ color: "var(--text-muted)" }}>
+            Jonogon v2.4 BD
+          </span>
+          <span className="text-[10px] opacity-75">
+            {t("স্মার্ট পাবলিক ইনফ্রাস্ট্রাকচার", "Smart Public Infra")}
+          </span>
+        </div>
+      </aside>
+
       {/* 🇧🇩 Top Gov Header Bar */}
       <header className="border-b" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)" }}>
         {/* National Hotlines & Judge Evaluation Trigger */}
@@ -931,6 +1171,22 @@ export default function JonogonApp() {
         {/* Main Branding Navigation */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <div className="flex items-center space-x-3">
+            {/* 3-Dash Menu Bar Button (on left side of Bangladesh flag) */}
+            <button
+              type="button"
+              onClick={() => setIsSideMenuOpen(true)}
+              className="p-2 rounded-xl border transition-all hover:opacity-80 active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
+              style={{
+                backgroundColor: "var(--surface)",
+                borderColor: "var(--border-color)",
+                color: "var(--text-main)",
+              }}
+              title={t("সাইড মেনু খুলুন", "Open side navigation menu")}
+              aria-label={t("সাইড মেনু খুলুন", "Open side navigation menu")}
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
             <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex items-center justify-center bg-[#006A4E] relative flex-shrink-0 border" style={{ borderColor: "var(--border-color)" }}>
               <svg viewBox="0 0 50 30" className="w-full h-full">
                 <rect width="50" height="30" fill="#006A4E" />
@@ -1111,6 +1367,394 @@ export default function JonogonApp() {
                 ))}
               </div>
             </div>
+
+            {/* TAB CONTENT: 🚆 Transport Info & Live Bangladesh Route Map */}
+            {activeTab === "transport-info" && (
+              <div className="space-y-6">
+                {/* Header Banner */}
+                <div
+                  className="rounded-2xl p-5 sm:p-6 border shadow-sm relative overflow-hidden"
+                  style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}
+                >
+                  <div className="max-w-3xl">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                      <Compass className="w-3.5 h-3.5" />
+                      <span>{t("বাংলাদেশ স্মার্ট গণপরিবহন ও যাতায়াত হাব", "Bangladesh Smart Transit & Mobility Hub")}</span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
+                    </div>
+                    <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" style={{ color: "var(--text-main)" }}>
+                      {t("মেট্রোরেল, ট্রেন, বাস ও নৌপথের লাইভ রুট ও ভাড়ার বাতায়ন", "Live Route Mapping, Official Fares & Transport Intelligence")}
+                    </h2>
+                    <p className="text-xs sm:text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                      {t(
+                        "বাংলাদেশ ম্যাপে গুগল ম্যাপসের মতোই লাইভ ইন্টারঅ্যাক্টিভ রুটের দৃশ্য, প্রতিটি স্টপেজের সঠিক সময়সূচি, সরকার-অনুমোদিত ভাড়ার চার্ট এবং সরাসরি অফিশিয়াল পোর্টাল থেকে ই-টিকিট কাটার ওয়ান-স্টপ সুবিধা।",
+                        "Live interactive route visualization on the Bangladesh map just like Google Maps, verified stoppage schedules, official government fare breakdowns, and direct redirects to official portals for hassle-free e-ticket booking."
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Mode Filters & Search */}
+                  <div className="mt-5 pt-4 border-t flex flex-col md:flex-row md:items-center justify-between gap-3" style={{ borderColor: "var(--border-color)" }}>
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full">
+                      {[
+                        { id: "all", labelBn: "সব পরিবহন", labelEn: "All Modes", icon: Compass },
+                        { id: "metro", labelBn: "মেট্রোরেল (MRT)", labelEn: "Metro (MRT)", icon: Train },
+                        { id: "train", labelBn: "আন্তঃনগর ট্রেন", labelEn: "Intercity Trains", icon: Train },
+                        { id: "bus", labelBn: "নগর বাস", labelEn: "City Buses", icon: Bus },
+                        { id: "intercity-bus", labelBn: "আন্তঃজেলা বাস", labelEn: "Long Route Buses", icon: Bus },
+                        { id: "launch", labelBn: "নৌপথ ও লঞ্চ", labelEn: "Waterways", icon: Ship },
+                      ].map((mode) => {
+                        const IconComp = mode.icon;
+                        const isSelected = transportFilterType === mode.id;
+                        return (
+                          <button
+                            key={mode.id}
+                            onClick={() => setTransportFilterType(mode.id as any)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 cursor-pointer ${
+                              isSelected ? "shadow-sm font-bold" : "opacity-80 hover:opacity-100"
+                            }`}
+                            style={{
+                              backgroundColor: isSelected ? "var(--primary-green)" : "var(--background)",
+                              color: isSelected ? "#FFFFFF" : "var(--text-main)",
+                              borderColor: isSelected ? "var(--primary-green)" : "var(--border-color)",
+                            }}
+                          >
+                            <IconComp className="w-3.5 h-3.5" />
+                            <span>{lang === "bn" ? mode.labelBn : mode.labelEn}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Quick Search */}
+                    <div className="relative min-w-[240px]">
+                      <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} />
+                      <input
+                        type="text"
+                        value={transportSearchTerm}
+                        onChange={(e) => setTransportSearchTerm(e.target.value)}
+                        placeholder={t("স্টেশন বা রুট খুঁজুন (উদা: মতিঝিল, চট্টগ্রাম...)", "Search station or route (e.g. Motijheel)...")}
+                        className="w-full pl-8 pr-3 py-1.5 rounded-xl border text-xs outline-none transition-all focus:ring-1"
+                        style={{
+                          backgroundColor: "var(--background)",
+                          borderColor: "var(--border-color)",
+                          color: "var(--text-main)",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Route Selection Cards (Horizontal Grid) */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {filteredTransportRoutes.map((route) => {
+                    const isSelected = route.id === currentSelectedRoute.id;
+                    return (
+                      <button
+                        key={route.id}
+                        onClick={() => setSelectedTransportRouteId(route.id)}
+                        className={`p-4 rounded-2xl border text-left transition-all hover:shadow-md flex flex-col justify-between cursor-pointer ${
+                          isSelected ? "ring-2 ring-emerald-500 shadow-sm" : ""
+                        }`}
+                        style={{
+                          backgroundColor: isSelected ? "var(--primary-green-light)" : "var(--surface)",
+                          borderColor: isSelected ? "var(--primary-green)" : "var(--border-color)",
+                        }}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-2">
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                              style={{
+                                backgroundColor: isSelected ? "var(--primary-green)" : "var(--background)",
+                                color: isSelected ? "#FFFFFF" : "var(--text-main)",
+                                border: "1px solid var(--border-color)",
+                              }}
+                            >
+                              {route.type === "metro" ? "🚇 " : route.type === "train" ? "🚆 " : route.type === "launch" ? "⛴️ " : "🚌 "}
+                              {lang === "bn" ? route.typeLabelBn : route.typeLabelEn}
+                            </span>
+                            <span className="text-[10px] font-bold" style={{ color: "var(--primary-green)" }}>
+                              {route.distanceKm} km
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-bold leading-snug mb-1" style={{ color: "var(--text-main)" }}>
+                            {lang === "bn" ? route.titleBn : route.titleEn}
+                          </h4>
+                          <p className="text-xs line-clamp-2" style={{ color: "var(--text-muted)" }}>
+                            {lang === "bn" ? route.routeSummaryBn : route.routeSummaryEn}
+                          </p>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t flex items-center justify-between text-[11px]" style={{ borderColor: "var(--border-color)" }}>
+                          <span className="font-semibold" style={{ color: "var(--text-muted)" }}>
+                            ⏱️ {lang === "bn" ? route.durationBn : route.durationEn}
+                          </span>
+                          <span className="font-bold flex items-center gap-1" style={{ color: "var(--primary-green)" }}>
+                            <span>{lang === "bn" ? route.fareBreakdown[0]?.fareBn : route.fareBreakdown[0]?.fareEn}</span>
+                            <ArrowRight className="w-3 h-3" />
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* 🗺️ Interactive Live Route Bangladesh Map (Just like Google Maps) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-bold flex items-center gap-2" style={{ color: "var(--text-main)" }}>
+                      <MapPin className="w-4 h-4" style={{ color: "var(--primary-green)" }} />
+                      <span>{t("বাংলাদেশ লাইভ রুট মানচিত্র (গুগল ম্যাপস ভিউ)", "Live Route Map on Bangladesh Grid (Google Maps Style)")}</span>
+                    </h3>
+                    <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
+                      {t("স্টেশনে ক্লিক করে বিস্তারিত দেখুন", "Click any stoppage for timings & fares")}
+                    </span>
+                  </div>
+
+                  <BangladeshTransportMap
+                    selectedRoute={currentSelectedRoute}
+                    allRoutes={filteredTransportRoutes}
+                    onSelectRoute={(id) => setSelectedTransportRouteId(id)}
+                    lang={lang}
+                    darkMode={darkMode}
+                  />
+                </div>
+
+                {/* Detailed Route Intelligence & Action Hub */}
+                <div
+                  className="rounded-2xl p-5 sm:p-7 border shadow-sm space-y-6"
+                  style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}
+                >
+                  {/* Top Bar with Title, Operator & Appealing Action Redirect Buttons */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-5 border-b" style={{ borderColor: "var(--border-color)" }}>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span
+                          className="px-2.5 py-0.5 rounded-lg text-xs font-black uppercase text-white shadow-xs"
+                          style={{ backgroundColor: "var(--primary-green)" }}
+                        >
+                          {currentSelectedRoute.code || "TRANSIT"}
+                        </span>
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-md border" style={{ borderColor: "var(--border-color)", color: "var(--text-muted)" }}>
+                          {lang === "bn" ? currentSelectedRoute.operatorBn : currentSelectedRoute.operatorEn}
+                        </span>
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-extrabold" style={{ color: "var(--text-main)" }}>
+                        {lang === "bn" ? currentSelectedRoute.titleBn : currentSelectedRoute.titleEn}
+                      </h3>
+                      <p className="text-xs sm:text-sm mt-1" style={{ color: "var(--text-muted)" }}>
+                        {lang === "bn" ? currentSelectedRoute.routeSummaryBn : currentSelectedRoute.routeSummaryEn}
+                      </p>
+                    </div>
+
+                    {/* Appealing CTA Redirect Buttons */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {currentSelectedRoute.officialLinks.map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 active:scale-95 ${
+                            link.primary
+                              ? "text-white hover:opacity-90"
+                              : "border hover:bg-black/5 dark:hover:bg-white/5"
+                          }`}
+                          style={{
+                            backgroundColor: link.primary ? "var(--primary-green)" : "var(--background)",
+                            borderColor: link.primary ? "transparent" : "var(--border-color)",
+                            color: link.primary ? "#FFFFFF" : "var(--text-main)",
+                          }}
+                        >
+                          <Ticket className="w-3.5 h-3.5" />
+                          <span>{lang === "bn" ? link.labelBn : link.labelEn}</span>
+                          <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+                        </a>
+                      ))}
+
+                      {/* Google Maps Direct Navigation Button */}
+                      <a
+                        href={currentSelectedRoute.googleMapsDirectionsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5 active:scale-95 hover:opacity-90"
+                        style={{ backgroundColor: "#1D4ED8" }}
+                      >
+                        <Navigation className="w-3.5 h-3.5" />
+                        <span>Google Maps</span>
+                        <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+                      </a>
+                    </div>
+                  </div>
+
+                  {/* Route Quick Metrics */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 rounded-xl border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+                      <span className="text-[11px] font-semibold block mb-0.5" style={{ color: "var(--text-muted)" }}>
+                        {t("মোট দূরত্ব", "Total Distance")}
+                      </span>
+                      <span className="text-lg font-extrabold" style={{ color: "var(--text-main)" }}>
+                        {currentSelectedRoute.distanceKm} km
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+                      <span className="text-[11px] font-semibold block mb-0.5" style={{ color: "var(--text-muted)" }}>
+                        {t("ভ্রমণ সময়", "Estimated Duration")}
+                      </span>
+                      <span className="text-lg font-extrabold" style={{ color: "var(--primary-green)" }}>
+                        {lang === "bn" ? currentSelectedRoute.durationBn : currentSelectedRoute.durationEn}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+                      <span className="text-[11px] font-semibold block mb-0.5" style={{ color: "var(--text-muted)" }}>
+                        {t("সার্ভিস ফ্রিকোয়েন্সি", "Frequency")}
+                      </span>
+                      <span className="text-xs font-bold block" style={{ color: "var(--text-main)" }}>
+                        {lang === "bn" ? currentSelectedRoute.frequencyBn : currentSelectedRoute.frequencyEn}
+                      </span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+                      <span className="text-[11px] font-semibold block mb-0.5" style={{ color: "var(--text-muted)" }}>
+                        {t("চলাচলের সময়", "Operating Hours")}
+                      </span>
+                      <span className="text-xs font-bold block" style={{ color: "var(--text-main)" }}>
+                        {lang === "bn" ? currentSelectedRoute.operatingHoursBn : currentSelectedRoute.operatingHoursEn}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Government Verified Fare Breakdown */}
+                  <div>
+                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3" style={{ color: "var(--text-main)" }}>
+                      <Calculator className="w-4 h-4" style={{ color: "var(--primary-green)" }} />
+                      <span>{t("সরকারি অনুমোদিত ভাড়ার চার্ট", "Government-Approved Official Fare Breakdown")}</span>
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                      {currentSelectedRoute.fareBreakdown.map((f, i) => (
+                        <div
+                          key={i}
+                          className="p-3.5 rounded-xl border flex flex-col justify-between"
+                          style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}
+                        >
+                          <div>
+                            <span className="text-xs font-semibold block" style={{ color: "var(--text-muted)" }}>
+                              {lang === "bn" ? f.classBn : f.classEn}
+                            </span>
+                            <span className="text-lg font-black mt-1 block" style={{ color: "var(--text-main)" }}>
+                              {lang === "bn" ? f.fareBn : f.fareEn}
+                            </span>
+                          </div>
+                          {(f.noteBn || f.noteEn) && (
+                            <span className="text-[10px] mt-2 font-medium opacity-80" style={{ color: "var(--primary-green)" }}>
+                              • {lang === "bn" ? f.noteBn : f.noteEn}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Stoppage Stations Interactive Timeline */}
+                  <div>
+                    <h4 className="text-sm font-bold flex items-center gap-2 mb-3" style={{ color: "var(--text-main)" }}>
+                      <Clock className="w-4 h-4" style={{ color: "var(--primary-green)" }} />
+                      <span>{t("স্টেশন ও স্টপেজের সম্পূর্ণ তালিকা", "Complete Stoppages & Station Timeline")}</span>
+                    </h4>
+
+                    <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
+                      <table className="w-full text-left text-xs border-collapse">
+                        <thead>
+                          <tr className="border-b" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>#</th>
+                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("স্টেশনের নাম", "Station Name")}</th>
+                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("সময়সূচি", "Departure")}</th>
+                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("মূল স্টেশন থেকে ভাড়া", "Fare from Origin")}</th>
+                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("সুযোগ-সুবিধা", "Amenities")}</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
+                          {currentSelectedRoute.stations.map((st, sIdx) => (
+                            <tr key={sIdx} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                              <td className="py-2.5 px-3 font-mono font-bold" style={{ color: "var(--text-muted)" }}>
+                                {sIdx + 1}
+                              </td>
+                              <td className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>
+                                <span>{lang === "bn" ? st.nameBn : st.nameEn}</span>
+                                {sIdx === 0 && (
+                                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-bold">
+                                    {t("যাত্রা শুরু", "Origin")}
+                                  </span>
+                                )}
+                                {sIdx === currentSelectedRoute.stations.length - 1 && (
+                                  <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 font-bold">
+                                    {t("গন্তব্য", "Destination")}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2.5 px-3 font-medium" style={{ color: "var(--primary-green)" }}>
+                                {st.departureTime || "—"}
+                              </td>
+                              <td className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>
+                                {lang === "bn" ? (st.fareFromStartBn || "—") : (st.fareFromStartEn || "—")}
+                              </td>
+                              <td className="py-2.5 px-3">
+                                {st.amenitiesBn && st.amenitiesBn.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1">
+                                    {(lang === "bn" ? st.amenitiesBn : st.amenitiesEn)?.map((am, aIdx) => (
+                                      <span
+                                        key={aIdx}
+                                        className="text-[10px] px-2 py-0.5 rounded-md border"
+                                        style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--text-muted)" }}
+                                      >
+                                        {am}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-[10px] opacity-60" style={{ color: "var(--text-muted)" }}>{t("স্ট্যান্ডার্ড প্ল্যাটফর্ম", "Standard Platform")}</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Transit Policy & Guidelines Accordion */}
+                  <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-subtle)" }}>
+                      {t("বাংলাদেশ গণপরিবহন সরকারি নীতিমালা ও টিকিট কেনার নির্দেশিকা", "Official Transit Policies & Ticket Booking Guidelines")}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
+                      <div className="p-3 rounded-lg border bg-surface" style={{ borderColor: "var(--border-color)" }}>
+                        <span className="font-bold block mb-1" style={{ color: "var(--text-main)" }}>
+                          🚇 {t("মেট্রোরেল র‍্যাপিড পাস", "Metro MRT Pass")}
+                        </span>
+                        <span>{t("র‍্যাপিড পাস বা এমআরটি পাস ব্যবহারকারীদের প্রতিটি একক যাত্রায় স্বয়ংক্রিয়ভাবে ১০% ডিসকাউন্ট প্রদান করা হয়।", "Rapid Pass holders enjoy an automatic 10% rebate on every single ride across all MRT Line-6 stations.")}</span>
+                      </div>
+                      <div className="p-3 rounded-lg border bg-surface" style={{ borderColor: "var(--border-color)" }}>
+                        <span className="font-bold block mb-1" style={{ color: "var(--text-main)" }}>
+                          🚆 {t("রেলওয়ে ই-টিকিট রিফান্ড", "Railway E-Ticket Refund")}
+                        </span>
+                        <span>{t("যাত্রা শুরুর ৪৮ ঘণ্টা পূর্বে টিকিট ফেরত দিলে ১০%, ২৪ ঘণ্টায় ২৫% এবং ১২ ঘণ্টায় ৫০% কর্তন করে অনলাইন রিফান্ড পাওয়া যায়।", "Railway tickets can be cancelled online up to 48 hours before departure with standard refund rules via eticket.railway.gov.bd.")}</span>
+                      </div>
+                      <div className="p-3 rounded-lg border bg-surface" style={{ borderColor: "var(--border-color)" }}>
+                        <span className="font-bold block mb-1" style={{ color: "var(--text-main)" }}>
+                          🚌 {t("বাসে শিক্ষার্থী হাফ পাস", "Student Half Pass")}
+                        </span>
+                        <span>{t("ঢাকা মহানগরীর সকল রুটের সিটি বাসে শিক্ষার্থীদের জন্য বিআরটিএ প্রজ্ঞাপন অনুযায়ী ইউনিফর্ম বা বৈধ আইডি কার্ড প্রদর্শনে হাফ পাস প্রযোজ্য।", "Students with valid ID cards are eligible for the BRTA mandated 50% concession on Dhaka metropolitan city buses.")}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* TAB CONTENT: 🚨 CivicSignal (Reports & Hazard Submission) */}
             {activeTab === "civic-signal" && (

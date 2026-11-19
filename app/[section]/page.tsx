@@ -19,6 +19,11 @@ const publicPages = new Set<JonogonPage>([
   "profile",
   "feedback",
   "notifications",
+  "government-complaint",
+  "marriage-divorce",
+  "lost-document",
+  "document-mismatch",
+  "rejection-explainer",
 ]);
 
 async function SectionPageContent({ params }: { params: Promise<{ section: string }> }) {

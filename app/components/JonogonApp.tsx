@@ -54,6 +54,7 @@ import {
 import { TRANSPORT_ROUTES, TransportRoute } from "../transport-data";
 import BangladeshTransportMap from "./BangladeshTransportMap";
 import AccountPages from "./AccountPages";
+import OfficialServicePages, { type OfficialServicePage } from "./OfficialServicePages";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export type FeaturePage =
@@ -66,7 +67,12 @@ export type FeaturePage =
   | "fee-calculator"
   | "doc-checker"
   | "scam-detector"
-  | "volunteer-grid";
+  | "volunteer-grid"
+  | "government-complaint"
+  | "marriage-divorce"
+  | "lost-document"
+  | "document-mismatch"
+  | "rejection-explainer";
 
 export type JonogonPage =
   | "home"
@@ -83,9 +89,14 @@ export type JonogonPage =
 const FEATURE_PAGES: FeaturePage[] = [
   "transport-info", "civic-signal", "bazaar-watch", "safe-report", "rumor-buster",
   "nrb-gateway", "fee-calculator", "doc-checker", "scam-detector", "volunteer-grid",
+  "government-complaint", "marriage-divorce", "lost-document", "document-mismatch", "rejection-explainer",
 ];
 
 const isFeaturePage = (page: JonogonPage): page is FeaturePage => FEATURE_PAGES.includes(page as FeaturePage);
+const OFFICIAL_SERVICE_PAGES: OfficialServicePage[] = [
+  "government-complaint", "marriage-divorce", "lost-document", "document-mismatch", "rejection-explainer",
+];
+const isOfficialServicePage = (page: JonogonPage): page is OfficialServicePage => OFFICIAL_SERVICE_PAGES.includes(page as OfficialServicePage);
 
 interface SpeechRecognitionResultLike {
   readonly isFinal: boolean;
@@ -643,6 +654,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
   const [accountUser, setAccountUser] = useState<{ id: string; email?: string; nickname?: string; avatarUrl?: string; role?: string } | null>(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
   const sideMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const sideMenuCloseButtonRef = useRef<HTMLButtonElement>(null);
   const wasSideMenuOpenRef = useRef(false);
@@ -666,6 +678,13 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
     router.push(page === "home" ? "/" : `/${page}`);
   };
 
+  const navigateToCitizenDocuments = () => {
+    navigateTo("home");
+    window.setTimeout(() => {
+      document.getElementById("citizen-documents-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 350);
+  };
+
   useEffect(() => {
     const storedLanguage = window.localStorage.getItem("jonogon-language");
     if (storedLanguage === "bn" || storedLanguage === "en") setLang(storedLanguage);
@@ -681,6 +700,10 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
       setActivePortal("citizen");
     }
   }, [initialPage]);
+
+  useEffect(() => {
+    if (isFeaturePage(activePage) || activePage === "govcopilot") setIsFeatureMenuOpen(true);
+  }, [activePage]);
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
@@ -728,13 +751,20 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
       setUnreadNotificationCount(count || 0);
     };
 
+    const refreshAccountProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      await loadAccount(user);
+    };
+
     supabase.auth.getUser().then(({ data }) => loadAccount(data.user));
+    window.addEventListener("jonogon:profile-updated", refreshAccountProfile);
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       void loadAccount(session?.user || null);
     });
     return () => {
       subscription.unsubscribe();
       window.removeEventListener("jonogon:notifications-updated", refreshNotificationCount);
+      window.removeEventListener("jonogon:profile-updated", refreshAccountProfile);
     };
   }, []);
 
@@ -1082,6 +1112,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
     filteredTransportRoutes[0] ||
     TRANSPORT_ROUTES[0];
 
+  const greetingName = accountUser?.nickname?.trim();
   const isAccountPage = ["login", "signup", "profile", "feedback", "notifications", "owner", "owner-setup"].includes(activePage);
 
   return (
@@ -1143,6 +1174,33 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
 
         {/* Drawer Content */}
         <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          <button
+            type="button"
+            onClick={() => setIsFeatureMenuOpen((open) => !open)}
+            className="w-full rounded-xl border p-3 text-left transition-colors hover:shadow-sm"
+            style={{ borderColor: isFeatureMenuOpen ? "var(--primary-green)" : "var(--border-color)", backgroundColor: isFeatureMenuOpen ? "var(--primary-green-light)" : "var(--background)", color: "var(--text-main)" }}
+            aria-expanded={isFeatureMenuOpen}
+            aria-controls="feature-services-stack"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white" style={{ backgroundColor: "var(--primary-green)" }}>
+                <FileText className="h-5 w-5" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-bold">{t("ফিচার ও সেবা", "Features & Services")}</span>
+                <span className="mt-0.5 block text-[10px]" style={{ color: "var(--text-muted)" }}>{t("সব পোর্টাল, টুল ও নাগরিক সহায়িকা", "Open the full stack of portals, tools, and citizen guides")}</span>
+              </span>
+              <ChevronDown className={`h-5 w-5 shrink-0 transition-transform duration-300 ${isFeatureMenuOpen ? "rotate-180" : ""}`} />
+            </span>
+          </button>
+
+          <div
+            id="feature-services-stack"
+            className={`grid transition-[grid-template-rows,opacity] duration-300 ease-in-out ${isFeatureMenuOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+            aria-hidden={!isFeatureMenuOpen}
+            inert={!isFeatureMenuOpen}
+          >
+            <div className="min-h-0 overflow-hidden space-y-4">
           {/* Featured Service: Transport Info */}
           <div>
             <div className="px-2 py-1 text-[10px] font-bold tracking-wider uppercase" style={{ color: "var(--text-subtle)" }}>
@@ -1179,6 +1237,19 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
             </button>
           </div>
 
+          <button
+            onClick={navigateToCitizenDocuments}
+            className="w-full rounded-xl border p-2.5 text-left transition-colors hover:shadow-sm flex items-center gap-2.5"
+            style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--text-main)" }}
+          >
+            <FileText className="h-4 w-4" style={{ color: "var(--primary-green)" }} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-semibold">{t("গুরুত্বপূর্ণ সরকারি নথি", "Important Government Documents")}</span>
+              <span className="block text-[10px]" style={{ color: "var(--text-muted)" }}>{t("জন্মনিবন্ধন, NID, পাসপোর্ট ও অন্যান্য", "Birth records, NID, passport, and more")}</span>
+            </span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+
           {/* Core Citizen Services */}
           <div>
             <div className="px-2 py-1 text-[10px] font-bold tracking-wider uppercase" style={{ color: "var(--text-subtle)" }}>
@@ -1195,6 +1266,11 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
                 { id: "doc-checker", label: t("এআই নথি পরীক্ষক", "AI Document Checker"), icon: FileCheck, desc: t("কাগজপত্রের ত্রুটি ও স্পষ্টতা যাচাই", "Scan documents for omissions") },
                 { id: "scam-detector", label: t("স্ক্যাম ও লিংক ডিটেক্টর", "Scam & Fake Portal Detector"), icon: ShieldAlert, desc: t("ভুয়া ওয়েবসাইট ও প্রতারণা রোধ", "Detect fraudulent links") },
                 { id: "volunteer-grid", label: t("ত্রাণ ও যুব ভলান্টিয়ার", "Relief & Volunteers"), icon: HeartHandshake, desc: t("দুর্যোগ সহায়তা ও সমাজসেবা", "Youth civil protection grid") },
+                { id: "government-complaint", label: t("সরকারি অভিযোগ সহায়িকা", "Government Complaint & Grievance Assistant"), icon: Building2, desc: t("সঠিক কর্তৃপক্ষ, অভিযোগ ও ট্র্যাকিং", "Find the authority, submit, and track") },
+                { id: "marriage-divorce", label: t("বিবাহ ও তালাক নিবন্ধন", "Marriage & Divorce Registration"), icon: FileText, desc: t("যোগ্যতা, কাগজপত্র ও সরকারি প্রক্রিয়া", "Eligibility, documents, and official steps") },
+                { id: "lost-document", label: t("হারানো নথি পুনরুদ্ধার", "Lost Document Recovery"), icon: RefreshCw, desc: t("NID, পাসপোর্ট, জন্মসনদ ও লাইসেন্স", "NID, passport, birth record, and licence") },
+                { id: "document-mismatch", label: t("নথির তথ্যের অমিল সমাধান", "Document Mismatch Resolver"), icon: CheckCircle2, desc: t("সঠিক তথ্য সংশোধনের ধাপ", "Steps to correct inconsistent records") },
+                { id: "rejection-explainer", label: t("আবেদন বাতিলের কারণ ব্যাখ্যা", "Rejection Reason Explainer"), icon: Search, desc: t("বাতিল বার্তা বুঝুন ও পরবর্তী ধাপ দেখুন", "Understand a rejection and next steps") },
               ].map((item) => {
                 const IconComponent = item.icon;
                 const isItemActive = activePage === item.id;
@@ -1281,6 +1357,8 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
             </div>
           </div>
         </div>
+            </div>
+          </div>
 
         {/* Fixed account and feedback actions at the bottom of the drawer */}
         <div className="space-y-2 border-t p-3" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
@@ -1426,6 +1504,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
           <AccountPages mode={activePage as Extract<JonogonPage, "login" | "signup" | "profile" | "feedback" | "notifications" | "owner" | "owner-setup">} lang={lang} />
         ) : activePortal === "citizen" ? (
           <div>
+            {isOfficialServicePage(activePage) && <OfficialServicePages page={activePage} lang={lang} />}
             {activePage === "home" && (
               <>
             {/* Hero Search & Voice Assistant */}
@@ -1436,7 +1515,9 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
                   {t("AI চালিত তাৎক্ষণিক নাগরিক সেবা সহকারী", "AI-Augmented Realtime Citizen Services")}
                 </span>
                 <h2 className="text-2xl sm:text-3xl font-extrabold mb-2" style={{ color: "var(--text-main)" }}>
-                  {t("আজ আপনাকে কীভাবে সহযোগিতা করতে পারি?", "How can we assist you today, Citizen?")}
+                  {greetingName
+                    ? t(`আজ আপনাকে কীভাবে সহযোগিতা করতে পারি, ${greetingName}?`, `How can we assist you today, ${greetingName}?`)
+                    : t("আজ আপনাকে কীভাবে সহযোগিতা করতে পারি?", "How can we assist you today, Citizen?")}
                 </h2>
                 <p className="text-xs sm:text-sm mb-5 max-w-xl mx-auto font-normal" style={{ color: "var(--text-muted)" }}>
                   {t(
@@ -2666,7 +2747,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
             )}
 
             {/* Citizen documents and official government services */}
-            {activePage === "home" && <section aria-labelledby="citizen-services-heading" className="mt-8 space-y-4">
+            {activePage === "home" && <section id="citizen-documents-section" aria-labelledby="citizen-services-heading" className="mt-8 space-y-4 scroll-mt-6">
               <div className="rounded-2xl p-5 sm:p-6 border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mb-2" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
                   <FileText className="w-3 h-3" />

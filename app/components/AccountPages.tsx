@@ -141,6 +141,11 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
     event.preventDefault();
     setError("");
     setMessage("");
+    const trimmedNickname = nickname.trim();
+    if (mode === "signup" && !trimmedNickname) {
+      setError(t("নিকনেম লিখুন। এটি আবশ্যক।", "Enter a nickname. This field is required."));
+      return;
+    }
     if (!isSupabaseConfigured()) {
       setError(t("সুপাবেস সেটআপ করা হয়নি।", "Supabase is not configured yet."));
       return;
@@ -154,7 +159,7 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
         email,
         password,
         options: {
-          data: { nickname: nickname.trim() },
+          data: { nickname: trimmedNickname },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
@@ -177,20 +182,33 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
     if (!user) return;
     setError("");
     setMessage("");
+    const trimmedNickname = nickname.trim();
+    if (!trimmedNickname) {
+      setError(t("নিকনেম লিখুন। এটি আবশ্যক।", "Enter a nickname. This field is required."));
+      return;
+    }
     setIsSaving(true);
     const { error: saveError } = await createClient().from("profiles").update({
-      nickname: nickname.trim(),
+      nickname: trimmedNickname,
       full_name: fullName.trim(),
       avatar_url: avatarUrl || null,
     }).eq("user_id", user.id);
     if (saveError) setError(saveError.message);
-    else setMessage(t("প্রোফাইল সংরক্ষণ হয়েছে।", "Profile saved."));
+    else {
+      setMessage(t("প্রোফাইল সংরক্ষণ হয়েছে।", "Profile saved."));
+      window.dispatchEvent(new Event("jonogon:profile-updated"));
+    }
     setIsSaving(false);
   };
 
   const uploadAvatar = async (file?: File) => {
     if (!user || !file) return;
     setError("");
+    const trimmedNickname = nickname.trim();
+    if (!trimmedNickname) {
+      setError(t("প্রোফাইল ছবি যোগ করার আগে নিকনেম লিখুন।", "Enter a nickname before saving your profile picture."));
+      return;
+    }
     if (file.size > 5 * 1024 * 1024) {
       setError(t("ছবির আকার ৫ এমবির কম হতে হবে।", "Choose an image smaller than 5 MB."));
       return;
@@ -206,12 +224,15 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       setAvatarUrl(data.publicUrl);
       const { error: saveError } = await supabase.from("profiles").update({
-        nickname: nickname.trim(),
+        nickname: trimmedNickname,
         full_name: fullName.trim(),
         avatar_url: data.publicUrl,
       }).eq("user_id", user.id);
       if (saveError) setError(saveError.message);
-      else setMessage(t("প্রোফাইল ছবি আপডেট হয়েছে।", "Profile picture updated."));
+      else {
+        setMessage(t("প্রোফাইল ছবি আপডেট হয়েছে।", "Profile picture updated."));
+        window.dispatchEvent(new Event("jonogon:profile-updated"));
+      }
     }
     setIsSaving(false);
   };
@@ -311,7 +332,7 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
             <h2 className="text-2xl font-bold">{mode === "signup" ? t("নতুন অ্যাকাউন্ট তৈরি করুন", "Create your account") : t("আপনার অ্যাকাউন্টে লগইন করুন", "Log in to your account")}</h2>
             <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>{t("প্রোফাইল, মতামত এবং নোটিফিকেশন এক জায়গায় পরিচালনা করুন।", "Manage your profile, feedback, and notifications in one place.")}</p>
             <form onSubmit={handleAuth} className="mt-5 space-y-3">
-              {mode === "signup" && <label className="block space-y-1.5 text-sm font-medium"><span>{t("নিকনেম", "Nickname")}</span><input required maxLength={40} autoComplete="nickname" className={inputClass} style={inputStyle} value={nickname} onChange={(event) => setNickname(event.target.value)} /></label>}
+              {mode === "signup" && <label className="block space-y-1.5 text-sm font-medium"><span>{t("নিকনেম", "Nickname")} <span aria-hidden="true" className="text-red-600">*</span></span><input required maxLength={40} autoComplete="nickname" className={inputClass} style={inputStyle} value={nickname} onChange={(event) => setNickname(event.target.value)} /></label>}
               <label className="block space-y-1.5 text-sm font-medium"><span>{t("ইমেইল / Gmail", "Email / Gmail")}</span><input required type="email" autoComplete="email" className={inputClass} style={inputStyle} value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label className="block space-y-1.5 text-sm font-medium"><span>{t("পাসওয়ার্ড", "Password")}</span><input required type="password" minLength={8} autoComplete={mode === "signup" ? "new-password" : "current-password"} className={inputClass} style={inputStyle} value={password} onChange={(event) => setPassword(event.target.value)} /></label>
               <button disabled={isSaving || !isSupabaseConfigured()} className="w-full rounded-xl px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50" style={{ backgroundColor: mode === "signup" ? "#1d5eaa" : "var(--primary-green)" }}>
@@ -341,7 +362,7 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
               <span className="text-xs" style={{ color: "var(--text-muted)" }}>{t("সর্বোচ্চ ৫ এমবি", "Up to 5 MB")}</span>
             </div>
             <form onSubmit={saveProfile} className="mt-5 space-y-3">
-              <label className="block space-y-1.5 text-sm font-medium"><span>{t("নিকনেম", "Nickname")}</span><input required maxLength={40} className={inputClass} style={inputStyle} value={nickname} onChange={(event) => setNickname(event.target.value)} /></label>
+              <label className="block space-y-1.5 text-sm font-medium"><span>{t("নিকনেম", "Nickname")} <span aria-hidden="true" className="text-red-600">*</span></span><input required maxLength={40} className={inputClass} style={inputStyle} value={nickname} onChange={(event) => setNickname(event.target.value)} /></label>
               <label className="block space-y-1.5 text-sm font-medium"><span>{t("পূর্ণ নাম", "Full name")}</span><input maxLength={100} className={inputClass} style={inputStyle} value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
               <label className="block space-y-1.5 text-sm font-medium"><span>{t("অ্যাকাউন্ট ইমেইল", "Account email")}</span><input readOnly className={inputClass} style={{ ...inputStyle, opacity: 0.75 }} value={user?.email || ""} /></label>
               <button disabled={isSaving} className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50" style={{ backgroundColor: "var(--primary-green)" }}><Save className="h-4 w-4" />{isSaving ? t("সংরক্ষণ হচ্ছে…", "Saving…") : t("প্রোফাইল সংরক্ষণ করুন", "Save profile")}</button>

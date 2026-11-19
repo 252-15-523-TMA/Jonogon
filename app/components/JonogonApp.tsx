@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -9,8 +9,6 @@ import {
   FileCheck,
   Calculator,
   Search,
-  Volume2,
-  Mic,
   MapPin,
   FileText,
   Sparkles,
@@ -55,6 +53,8 @@ import { TRANSPORT_ROUTES, TransportRoute } from "../transport-data";
 import BangladeshTransportMap from "./BangladeshTransportMap";
 import AccountPages from "./AccountPages";
 import OfficialServicePages, { type OfficialServicePage } from "./OfficialServicePages";
+import CitizenAIChat from "./CitizenAIChat";
+import PublicServiceSearch, { type PublicServiceSearchItem } from "./PublicServiceSearch";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export type FeaturePage =
@@ -97,35 +97,6 @@ const OFFICIAL_SERVICE_PAGES: OfficialServicePage[] = [
   "government-complaint", "marriage-divorce", "lost-document", "document-mismatch", "rejection-explainer",
 ];
 const isOfficialServicePage = (page: JonogonPage): page is OfficialServicePage => OFFICIAL_SERVICE_PAGES.includes(page as OfficialServicePage);
-
-interface SpeechRecognitionResultLike {
-  readonly isFinal: boolean;
-  readonly length: number;
-  readonly [index: number]: { readonly transcript: string };
-}
-
-interface SpeechRecognitionEventLike {
-  readonly resultIndex: number;
-  readonly results: ArrayLike<SpeechRecognitionResultLike>;
-}
-
-interface SpeechRecognitionLike {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  suppressEmptyEnd?: boolean;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-}
-
-type SpeechRecognitionConstructorLike = new () => SpeechRecognitionLike;
-type SpeechRecognitionWindow = Window & {
-  SpeechRecognition?: SpeechRecognitionConstructorLike;
-  webkitSpeechRecognition?: SpeechRecognitionConstructorLike;
-};
 
 // Mock Data for Essential Commodities (Live Bazaar Watch)
 const BAZAAR_DATA = [
@@ -643,6 +614,24 @@ const CITIZEN_SERVICES: CitizenServiceCard[] = [
   },
 ];
 
+const FEATURE_SEARCH_ENTRIES: PublicServiceSearchItem[] = [
+  { id: "feature-transport", page: "transport-info", titleBn: "যাতায়াত ও পরিবহন তথ্য", titleEn: "Transport Info", descriptionBn: "বাস, ট্রেন, মেট্রো ও নৌপথের রুট", descriptionEn: "Routes for buses, trains, metro, and water transport", keywords: "bus train metro route fare ticket launch railway transport" },
+  { id: "feature-civic-signal", page: "civic-signal", titleBn: "নাগরিক সিগন্যাল", titleEn: "CivicSignal Hazard Reports", descriptionBn: "রাস্তা, ড্রেনেজ ও নাগরিক সমস্যা রিপোর্ট করুন", descriptionEn: "Report road, drainage, and civic hazards", keywords: "road drain manhole waste complaint hazard civic signal" },
+  { id: "feature-bazaar", page: "bazaar-watch", titleBn: "বাজার দর মনিটর", titleEn: "Bazaar Watch TCB Prices", descriptionBn: "নিত্যপ্রয়োজনীয় পণ্যের বাজার দর", descriptionEn: "Daily essential commodity prices", keywords: "price market cost TCB commodity bazaar food" },
+  { id: "feature-whistleblower", page: "safe-report", titleBn: "নিরাপদ হুইসেলব্লোয়ার", titleEn: "Whistleblower Shield", descriptionBn: "দুর্নীতি ও ঘুষের অভিযোগ", descriptionEn: "Report corruption and bribery", keywords: "corruption bribe safe whistleblower report" },
+  { id: "feature-rumor", page: "rumor-buster", titleBn: "গুজব যাচাই", titleEn: "RumorBuster Fact Check", descriptionBn: "গুজব ও তথ্য যাচাই", descriptionEn: "Check a claim or rumor", keywords: "fact check misinformation rumor verify" },
+  { id: "feature-nrb", page: "nrb-gateway", titleBn: "প্রবাসী ও রেমিট্যান্স হাব", titleEn: "NRB Expat Gateway", descriptionBn: "প্রবাসী, রেমিট্যান্স ও ভূমি সুরক্ষা", descriptionEn: "Expat, remittance, and land protection", keywords: "expat migrant remittance overseas worker" },
+  { id: "feature-fees", page: "fee-calculator", titleBn: "সরকারি ফি ক্যালকুলেটর", titleEn: "Government Fee Calculator", descriptionBn: "পাসপোর্ট, NID ও লাইসেন্স ফি", descriptionEn: "Passport, NID, and licence fees", keywords: "fee charge cost passport nid driving license" },
+  { id: "feature-doc-checker", page: "doc-checker", titleBn: "নথি পরীক্ষক", titleEn: "Document Checker", descriptionBn: "কাগজপত্রের ত্রুটি ও স্পষ্টতা যাচাই", descriptionEn: "Check documents for omissions and clarity", keywords: "document scan checklist photo upload" },
+  { id: "feature-scam", page: "scam-detector", titleBn: "স্ক্যাম ও লিংক ডিটেক্টর", titleEn: "Scam & Fake Portal Detector", descriptionBn: "ভুয়া ওয়েবসাইট ও প্রতারণা শনাক্ত করুন", descriptionEn: "Check suspicious sites and scam links", keywords: "fraud fake website url scam" },
+  { id: "feature-volunteer", page: "volunteer-grid", titleBn: "ত্রাণ ও যুব ভলান্টিয়ার", titleEn: "Relief & Volunteers", descriptionBn: "দুর্যোগ সহায়তা ও সমাজসেবা", descriptionEn: "Disaster response and community volunteering", keywords: "volunteer relief disaster help" },
+  { id: "feature-grievance", page: "government-complaint", titleBn: "সরকারি অভিযোগ সহায়িকা", titleEn: "Government Complaint & Grievance Assistant", descriptionBn: "সঠিক কর্তৃপক্ষ, অভিযোগ ও ট্র্যাকিং", descriptionEn: "Find the authority, submit, and track a complaint", keywords: "complaint grievance appeal GRS track status" },
+  { id: "feature-marriage", page: "marriage-divorce", titleBn: "বিবাহ ও তালাক নিবন্ধন", titleEn: "Marriage & Divorce Registration", descriptionBn: "যোগ্যতা, কাগজপত্র ও সরকারি প্রক্রিয়া", descriptionEn: "Eligibility, documents, and official registration steps", keywords: "marriage divorce nikah registration certificate" },
+  { id: "feature-lost-doc", page: "lost-document", titleBn: "হারানো নথি পুনরুদ্ধার", titleEn: "Lost Document Recovery", descriptionBn: "হারানো NID, পাসপোর্ট, জন্মসনদ ও লাইসেন্স", descriptionEn: "Replace a lost NID, passport, birth certificate, or licence", keywords: "lost missing stolen replacement duplicate reissue birth passport nid driving license" },
+  { id: "feature-mismatch", page: "document-mismatch", titleBn: "নথির তথ্যের অমিল সমাধান", titleEn: "Document Mismatch Resolver", descriptionBn: "NID, পাসপোর্ট ও জন্মসনদের তথ্য সংশোধন", descriptionEn: "Correction steps for mismatched identity records", keywords: "mismatch correction inconsistent name date of birth passport nid birth certificate" },
+  { id: "feature-rejection", page: "rejection-explainer", titleBn: "আবেদন বাতিলের কারণ ব্যাখ্যা", titleEn: "Rejection Reason Explainer", descriptionBn: "বাতিল বার্তা বুঝুন ও পরবর্তী ধাপ জানুন", descriptionEn: "Understand a rejection and see suggested next steps", keywords: "rejected declined refusal application reason next steps" },
+];
+
 export default function JonogonApp({ initialPage = "home" }: { initialPage?: JonogonPage }) {
   const router = useRouter();
   const [lang, setLang] = useState<"bn" | "en">("bn");
@@ -655,6 +644,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
+  const [isPublicSearchOpen, setIsPublicSearchOpen] = useState(false);
   const sideMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const sideMenuCloseButtonRef = useRef<HTMLButtonElement>(null);
   const wasSideMenuOpenRef = useRef(false);
@@ -777,12 +767,6 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
 
   // State for interactive features
   const [reports, setReports] = useState(INITIAL_REPORTS);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [voiceTranscript, setVoiceTranscript] = useState("");
-  const [voiceLanguageNotice, setVoiceLanguageNotice] = useState(false);
-  const [voiceLanguage, setVoiceLanguage] = useState<"bn" | "en">("bn");
-  const speechRecognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   // CivicSignal Form State
   const [newTitle, setNewTitle] = useState("");
@@ -862,110 +846,6 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
       document.documentElement.classList.remove("dark");
     }
   }, [darkMode]);
-
-  // Capture live speech using the browser's speech recognition service.
-  const handleVoiceToggle = () => {
-    if (speechRecognitionRef.current) {
-      speechRecognitionRef.current.stop();
-      setIsRecordingVoice(false);
-      return;
-    }
-
-    const SpeechRecognition = (window as SpeechRecognitionWindow).SpeechRecognition
-      ?? (window as SpeechRecognitionWindow).webkitSpeechRecognition;
-
-    if (!SpeechRecognition) {
-      setVoiceTranscript(t(
-        "এই ব্রাউজারে ভয়েস ইনপুট সমর্থিত নয়। Chrome বা Edge ব্যবহার করে দেখুন।",
-        "Voice input is not supported in this browser. Try Chrome or Edge."
-      ));
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    let hasRecognizedSpeech = false;
-    let hasRecognitionError = false;
-    recognition.lang = voiceLanguage === "bn" ? "bn-BD" : "en-US";
-    recognition.continuous = false;
-    recognition.interimResults = true;
-
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let index = 0; index < event.results.length; index += 1) {
-        transcript += event.results[index][0].transcript;
-      }
-
-      transcript = transcript.trim();
-      if (transcript) {
-        hasRecognizedSpeech = true;
-        setSearchQuery(transcript);
-        setVoiceTranscript(transcript);
-      }
-    };
-
-    recognition.onerror = (event) => {
-      hasRecognitionError = true;
-      if (speechRecognitionRef.current === recognition) {
-        speechRecognitionRef.current = null;
-      }
-      const messages: Record<string, [string, string]> = {
-        "not-allowed": ["মাইক্রোফোন ব্যবহারের অনুমতি দিন, তারপর আবার চেষ্টা করুন।", "Allow microphone access, then try again."],
-        "service-not-allowed": ["ব্রাউজারের স্পিচ সার্ভিস ব্যবহার করা যাচ্ছে না।", "The browser's speech service is unavailable."],
-        "audio-capture": ["কোনো মাইক্রোফোন পাওয়া যায়নি।", "No microphone was found."],
-        "no-speech": ["কোনো কথা শোনা যায়নি। আবার বলুন।", "No speech was detected. Please try again."],
-        "language-not-supported": ["এই ভাষার স্পিচ রিকগনিশন সমর্থিত নয়।", "Speech recognition for this language is not supported."],
-        network: ["স্পিচ সার্ভিসে সংযোগ করা যায়নি। ইন্টারনেট সংযোগ পরীক্ষা করুন।", "Could not connect to the speech service. Check your internet connection."],
-      };
-      const message = messages[event.error];
-      if (event.error !== "aborted") {
-        setVoiceTranscript(message ? t(message[0], message[1]) : t(
-          "ভয়েস ইনপুটে সমস্যা হয়েছে। আবার চেষ্টা করুন।",
-          "Voice input failed. Please try again."
-        ));
-      }
-      setIsRecordingVoice(false);
-    };
-
-    recognition.onend = () => {
-      if (speechRecognitionRef.current === recognition) {
-        speechRecognitionRef.current = null;
-      }
-      setIsRecordingVoice(false);
-      if (!hasRecognizedSpeech && !hasRecognitionError && !recognition.suppressEmptyEnd) {
-        setVoiceTranscript(t("কোনো কথা ধরা যায়নি। আবার চেষ্টা করুন।", "No speech was detected. Please try again."));
-      }
-    };
-
-    try {
-      setVoiceLanguageNotice(false);
-      setVoiceTranscript(t("শুনছি... কথা বলুন...", "Listening... speak now..."));
-      setIsRecordingVoice(true);
-      speechRecognitionRef.current = recognition;
-      recognition.start();
-    } catch {
-      hasRecognitionError = true;
-      speechRecognitionRef.current = null;
-      setIsRecordingVoice(false);
-      setVoiceTranscript(t(
-        "মাইক্রোফোন চালু করা যায়নি। অনুমতি পরীক্ষা করে আবার চেষ্টা করুন।",
-        "Could not start the microphone. Check its permission and try again."
-      ));
-    }
-  };
-
-  const handleVoiceLanguageToggle = () => {
-    const nextLanguage = voiceLanguage === "bn" ? "en" : "bn";
-    if (speechRecognitionRef.current) {
-      const activeRecognition = speechRecognitionRef.current;
-      speechRecognitionRef.current = null;
-      activeRecognition.suppressEmptyEnd = true;
-      activeRecognition.stop();
-      setIsRecordingVoice(false);
-    }
-    setVoiceLanguage(nextLanguage);
-    setVoiceTranscript("");
-    setVoiceLanguageNotice(true);
-  };
 
   // Submit Civic Signal Report
   const handleReportSubmit = (e: React.FormEvent) => {
@@ -1113,6 +993,58 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
     TRANSPORT_ROUTES[0];
 
   const greetingName = accountUser?.nickname?.trim();
+  const publicSearchItems = useMemo(() => {
+    const documentSearchItems = CITIZEN_SERVICES.flatMap((service) => {
+      const sharedTerms = [service.titleBn, service.titleEn, service.descriptionBn, service.descriptionEn, ...service.actions.flatMap((action) => [action.labelBn, action.labelEn])].join(" ");
+      const cardItem: PublicServiceSearchItem = {
+        id: `service-${service.id}`,
+        titleBn: service.titleBn,
+        titleEn: service.titleEn,
+        descriptionBn: service.descriptionBn,
+        descriptionEn: service.descriptionEn,
+        keywords: `${sharedTerms} ${service.faqs.flatMap((faq) => [faq.questionBn, faq.questionEn, ...faq.stepsBn, ...faq.stepsEn]).join(" ")}`,
+        page: "home",
+        serviceId: service.id,
+      };
+      const questionItems = service.faqs.map((faq, index): PublicServiceSearchItem => ({
+        id: `faq-${service.id}-${index}`,
+        titleBn: faq.questionBn,
+        titleEn: faq.questionEn,
+        descriptionBn: service.titleBn,
+        descriptionEn: service.titleEn,
+        keywords: `${sharedTerms} ${faq.stepsBn.join(" ")} ${faq.stepsEn.join(" ")}`,
+        page: "home",
+        serviceId: service.id,
+      }));
+      const actionItems = service.actions.map((action, index): PublicServiceSearchItem => ({
+        id: `action-${service.id}-${index}`,
+        titleBn: action.labelBn,
+        titleEn: action.labelEn,
+        descriptionBn: `${service.titleBn} · ${service.descriptionBn}`,
+        descriptionEn: `${service.titleEn} · ${service.descriptionEn}`,
+        keywords: sharedTerms,
+        href: action.href,
+      }));
+      return [cardItem, ...questionItems, ...actionItems];
+    });
+    return [...FEATURE_SEARCH_ENTRIES, ...documentSearchItems];
+  }, []);
+
+  const selectPublicSearchItem = (item: PublicServiceSearchItem) => {
+    setIsPublicSearchOpen(false);
+    if (item.href) {
+      window.open(item.href, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (item.serviceId) {
+      setOpenCitizenServiceHelpId(item.id.startsWith("faq-") ? item.serviceId : null);
+      navigateTo("home");
+      window.setTimeout(() => document.getElementById(`citizen-service-${item.serviceId}`)?.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
+      return;
+    }
+    if (item.page) navigateTo(item.page as JonogonPage);
+  };
+
   const isAccountPage = ["login", "signup", "profile", "feedback", "notifications", "owner", "owner-setup"].includes(activePage);
 
   return (
@@ -1403,6 +1335,9 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
                 <Bell className="h-4 w-4" />
                 {unreadNotificationCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-3.5 rounded-full px-1 text-center text-[9px] font-bold leading-3.5 text-white" style={{ backgroundColor: "var(--alert-red)" }}>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span>}
               </Link>
+              <button type="button" onClick={() => setIsPublicSearchOpen(true)} className="inline-flex items-center rounded-lg p-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--text-main)" }} aria-label={t("সরকারি সেবা খুঁজুন", "Search public services")} title={t("সরকারি সেবা খুঁজুন", "Search public services")}>
+                <Search className="h-4 w-4" />
+              </button>
               <span className="flex items-center gap-1.5 font-semibold" style={{ color: "var(--alert-red)" }}>
                 <PhoneCall className="w-3.5 h-3.5" />
                 <span>{t("জরুরি হটলাইন: 999 | 333 | 106", "Hotlines: 999 | 333 | 106")}</span>
@@ -1438,7 +1373,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
         </div>
 
         {/* Main Branding Navigation */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             {/* 3-Dash Menu Bar Button (on left side of Bangladesh flag) */}
             <button
@@ -1483,6 +1418,17 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
             </div>
           </div>
 
+          <Link href="/" onClick={(event) => { event.preventDefault(); navigateTo("home"); }} className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--primary-green)" }} aria-label={t("হোম পেজে যান", "Go to home page")} aria-current={activePage === "home" ? "page" : undefined}>
+            <svg viewBox="0 0 40 40" className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true">
+              <path d="M20 4c-5 6-6 12 0 18 6-6 5-12 0-18Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
+              <path d="M9 11c0 7 3 11 11 13-1-7-4-11-11-13Zm22 0c-7 2-10 6-11 13 8-2 11-6 11-13Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
+              <path d="M5 21c6-1 11 1 15 6 4-5 9-7 15-6-3 7-8 10-15 10S8 28 5 21Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
+              <circle cx="20" cy="23" r="2.1" fill="#f1c44f" />
+              <path d="M7 34c4-2 8-2 13 0 5-2 9-2 13 0" fill="none" stroke="#15966f" strokeLinecap="round" strokeWidth="1.6" />
+            </svg>
+            <span className="hidden sm:inline">{t("হোম", "Home")}</span>
+          </Link>
+
           <div className="flex items-center gap-2">
             {accountUser ? (
               <Link href="/profile" className="max-w-44 truncate rounded-xl border px-3 py-2 text-xs font-semibold" style={{ borderColor: "var(--border-color)", color: "var(--text-main)", backgroundColor: "var(--surface)" }}>
@@ -1498,6 +1444,8 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
         </div>
       </header>
 
+      {isPublicSearchOpen && <PublicServiceSearch lang={lang} items={publicSearchItems} onClose={() => setIsPublicSearchOpen(false)} onSelect={selectPublicSearchItem} />}
+
       {/* Main Body */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         {isAccountPage ? (
@@ -1507,96 +1455,14 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
             {isOfficialServicePage(activePage) && <OfficialServicePages page={activePage} lang={lang} />}
             {activePage === "home" && (
               <>
-            {/* Hero Search & Voice Assistant */}
-            <div className="rounded-2xl p-6 sm:p-7 mb-6 border shadow-sm text-center relative overflow-hidden" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
-              <div className="max-w-2xl mx-auto">
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold mb-2" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
-                  <Sparkles className="w-3 h-3" />
-                  {t("AI চালিত তাৎক্ষণিক নাগরিক সেবা সহকারী", "AI-Augmented Realtime Citizen Services")}
+            {/* AI Public Service Chat */}
+            <div className="rounded-2xl border p-4 shadow-sm sm:p-6" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+              <div className="mx-auto max-w-6xl">
+                <span className="mb-2 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                  <Sparkles className="h-3 w-3" />
+                  {t("নাগরিক সেবা AI সহকারী", "Citizen Services AI Assistant")}
                 </span>
-                <h2 className="text-2xl sm:text-3xl font-extrabold mb-2" style={{ color: "var(--text-main)" }}>
-                  {greetingName
-                    ? t(`আজ আপনাকে কীভাবে সহযোগিতা করতে পারি, ${greetingName}?`, `How can we assist you today, ${greetingName}?`)
-                    : t("আজ আপনাকে কীভাবে সহযোগিতা করতে পারি?", "How can we assist you today, Citizen?")}
-                </h2>
-                <p className="text-xs sm:text-sm mb-5 max-w-xl mx-auto font-normal" style={{ color: "var(--text-muted)" }}>
-                  {t(
-                    "পাসপোর্ট, জন্ম নিবন্ধন ও জমির পর্চা থেকে শুরু করে নিত্যপণ্যের বাজার দর ও রাস্তার সমস্যা—সব এক প্ল্যাটফর্মে।",
-                    "From e-Passport and land mutation to daily commodity pricing and civic hazard reporting—all in one place."
-                  )}
-                </p>
-
-                {/* Input Search Box */}
-                <div className="relative flex items-center max-w-xl mx-auto">
-                  <Search className="w-4 h-4 absolute left-3.5" style={{ color: "var(--text-muted)" }} />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder={t("কী সেবা খুঁজছেন? (উদা: ই-পাসপোর্ট ফি, জন্ম নিবন্ধন, টিসিবি দর...)", "Search any public service (e.g. e-Passport fee, birth certificate, TCB rates...)")}
-                    className="w-full pl-10 pr-40 py-2.5 rounded-xl border text-xs sm:text-sm outline-none transition-all shadow-sm focus:ring-1"
-                    style={{
-                      backgroundColor: "var(--background)",
-                      borderColor: "var(--border-color)",
-                      color: "var(--text-main)"
-                    }}
-                  />
-                  <div className="absolute right-1.5 flex items-center space-x-1">
-                    <button
-                      type="button"
-                      onClick={handleVoiceLanguageToggle}
-                      className="px-2 py-1.5 rounded-lg text-[10px] font-bold transition-opacity hover:opacity-80"
-                      style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}
-                      aria-label={voiceLanguage === "bn"
-                        ? t("ভয়েসের ভাষা বাংলা। ইংরেজিতে বদলান", "Voice language Bangla. Switch to English")
-                        : t("ভয়েসের ভাষা ইংরেজি। বাংলায় বদলান", "Voice language English. Switch to Bangla")}
-                      title={voiceLanguage === "bn"
-                        ? t("ভয়েসের ভাষা বাংলা", "Voice input language: Bangla")
-                        : t("ভয়েসের ভাষা ইংরেজি", "Voice input language: English")}
-                    >
-                      {voiceLanguage === "bn" ? "বাংলা" : "EN"}
-                    </button>
-                    {/* Voice Assistant Button */}
-                    <button
-                      type="button"
-                      onClick={handleVoiceToggle}
-                      className={`p-1.5 rounded-lg transition-all ${
-                        isRecordingVoice ? "animate-pulse text-white" : ""
-                      }`}
-                      style={{
-                        backgroundColor: isRecordingVoice ? "var(--alert-red)" : "var(--primary-green-light)",
-                        color: isRecordingVoice ? "#FFFFFF" : "var(--primary-green)"
-                      }}
-                      aria-label={isRecordingVoice
-                        ? t("শোনা বন্ধ করুন", "Stop listening")
-                        : voiceLanguage === "bn" ? t("বাংলায় বলুন", "Speak in Bangla") : t("ইংরেজিতে বলুন", "Speak in English")}
-                      aria-pressed={isRecordingVoice}
-                      title={isRecordingVoice
-                        ? t("শোনা বন্ধ করতে ক্লিক করুন", "Click to stop listening")
-                        : voiceLanguage === "bn" ? t("বাংলায় ভয়েসে অনুসন্ধান করুন", "Search by speaking Bangla") : t("ইংরেজিতে ভয়েসে অনুসন্ধান করুন", "Search by speaking English")}
-                    >
-                      <Mic className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-opacity hover:opacity-90 shadow-sm"
-                      style={{ backgroundColor: "var(--primary-green)" }}
-                    >
-                      {t("অনুসন্ধান", "Search")}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Voice Transcript Toast */}
-                {(voiceTranscript || voiceLanguageNotice) && (
-                  <div role="status" aria-live="polite" className="mt-2.5 inline-flex items-center gap-2 px-3 py-1 rounded-lg text-xs border" style={{ backgroundColor: "var(--background)", borderColor: "var(--border-color)", color: "var(--primary-green)" }}>
-                    <Volume2 className="w-3.5 h-3.5 animate-bounce" />
-                    <span className="font-medium">{voiceLanguageNotice
-                      ? voiceLanguage === "bn"
-                        ? t("ভয়েস ইনপুটের ভাষা বাংলা করা হয়েছে।", "Voice input language set to Bangla.")
-                        : t("ভয়েস ইনপুটের ভাষা ইংরেজি করা হয়েছে।", "Voice input language set to English.")
-                      : voiceTranscript}</span>
-                  </div>
-                )}
+                <CitizenAIChat lang={lang} nickname={greetingName} />
               </div>
             </div>
               </>
@@ -2780,7 +2646,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
                   const helpPanelId = `citizen-service-help-${service.id}`;
 
                   return (
-                    <article key={service.id} className="relative rounded-2xl p-4 border shadow-sm flex flex-col" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                    <article id={`citizen-service-${service.id}`} key={service.id} className="relative scroll-mt-8 rounded-2xl p-4 border shadow-sm flex flex-col" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
                       <div className="flex items-start gap-2.5 mb-2.5 pr-11">
                         <div className="flex min-w-0 items-center gap-2.5">
                           <span className="p-2 rounded-xl shrink-0" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>

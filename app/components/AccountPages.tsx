@@ -29,6 +29,7 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [replyDraft, setReplyDraft] = useState("");
   const [message, setMessage] = useState("");
+  const [toast, setToast] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -36,6 +37,12 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
   const t = (bn: string, en: string) => (lang === "bn" ? bn : en);
   const isAuthPage = mode === "login" || mode === "signup";
   const isOwnerPage = mode === "owner";
+
+  useEffect(() => {
+    if (!toast) return;
+    const timeout = window.setTimeout(() => setToast(""), 7000);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
 
   useEffect(() => {
     if (mode === "owner-setup") {
@@ -49,6 +56,7 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
     }
 
     const supabase = createClient();
+    const justConfirmedEmail = mode === "profile" && new URLSearchParams(window.location.search).get("auth") === "confirmed";
     if (mode === "login" && new URLSearchParams(window.location.search).get("auth") === "confirmation-failed") {
       setError(t("ইমেইল নিশ্চিত করা যায়নি। লিংকটি আবার চেষ্টা করুন বা নতুন নিশ্চিতকরণ ইমেইল চাইুন।", "Email confirmation failed. Try the link again or request a new confirmation email."));
     }
@@ -61,8 +69,14 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
         setUser(signedIn);
         setEmail((current) => current || signedIn.email);
         setFeedbackEmail((current) => current || signedIn.email);
+        if (justConfirmedEmail) {
+          setToast(t("আপনার ইমেইল নিশ্চিত হয়েছে এবং আপনি লগইন করেছেন।", "Your email is confirmed and you're now signed in."));
+          window.history.replaceState(null, "", window.location.pathname);
+        }
       } else if (!isAuthPage) {
-        setError(t("এই পৃষ্ঠাটি ব্যবহার করতে আগে লগইন করুন।", "Please sign in to use this page."));
+        setError(justConfirmedEmail
+          ? t("ইমেইল নিশ্চিত হয়েছে, কিন্তু লগইন সম্পন্ন হয়নি। আবার লগইন করুন।", "Your email is confirmed, but sign-in did not finish. Please log in.")
+          : t("এই পৃষ্ঠাটি ব্যবহার করতে আগে লগইন করুন।", "Please sign in to use this page."));
         setIsLoading(false);
         return;
       }
@@ -264,6 +278,20 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
 
   return (
     <section className="mx-auto max-w-4xl space-y-4">
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed left-1/2 top-4 z-[100] flex w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-lg"
+          style={{ borderColor: "var(--primary-green)", backgroundColor: "var(--surface)", color: "var(--text-main)" }}
+        >
+          <Check className="h-5 w-5 shrink-0" style={{ color: "var(--primary-green)" }} />
+          <span className="flex-1">{toast}</span>
+          <button type="button" onClick={() => setToast("")} className="rounded p-1 text-lg leading-none" aria-label={t("বন্ধ করুন", "Dismiss")}>
+            ×
+          </button>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3">
         <Link href="/" className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--primary-green)" }}>
           <ArrowLeft className="h-4 w-4" /> {t("হোমে ফিরুন", "Back to home")}

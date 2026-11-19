@@ -37,9 +37,9 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<the project's publishable key>
 
 Redeploy after saving them. Use only the publishable key in these browser-visible variables; never put a `service_role` key here. The Vercel CLI is not linked or authenticated in this workspace, so these deployed environment variables still need to be set in the Vercel dashboard.
 
-## Create the owner account
+## Assign owner access
 
-The owner email does not have a Jonogon Auth account yet. Sign up at `https://jonogon.vercel.app/signup`, then open the confirmation email. After the confirmed account exists, run this in the Supabase SQL Editor, replacing the placeholder with the owner's exact email:
+The primary owner's confirmed Jonogon account has been assigned the `owner` role. For another owner, sign up at `https://jonogon.vercel.app/signup`, confirm the email, then run this in the Supabase SQL Editor with that owner's exact email:
 
 ```sql
 update public.profiles as p

@@ -8,8 +8,10 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.exchangeCodeForSession(code);
-  if (error) return NextResponse.redirect(new URL("/login?auth=confirmation-failed", request.url));
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error || !data.session) {
+    return NextResponse.redirect(new URL("/login?auth=confirmation-failed", request.url));
+  }
 
-  return NextResponse.redirect(new URL("/profile", request.url));
+  return NextResponse.redirect(new URL("/profile?auth=confirmed", request.url));
 }

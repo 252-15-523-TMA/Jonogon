@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import JonogonApp, { type JonogonPage } from "../components/JonogonApp";
 
@@ -20,8 +21,22 @@ const publicPages = new Set<JonogonPage>([
   "notifications",
 ]);
 
-export default async function SectionPage({ params }: { params: Promise<{ section: string }> }) {
+async function SectionPageContent({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
   if (!publicPages.has(section as JonogonPage)) notFound();
   return <JonogonApp initialPage={section as JonogonPage} />;
+}
+
+export default function SectionPage({ params }: { params: Promise<{ section: string }> }) {
+  return (
+    <Suspense
+      fallback={
+        <main className="grid min-h-screen place-items-center" role="status" aria-label="Loading service">
+          <span className="h-8 w-8 animate-spin rounded-full border-4 border-current border-r-transparent" />
+        </main>
+      }
+    >
+      <SectionPageContent params={params} />
+    </Suspense>
+  );
 }

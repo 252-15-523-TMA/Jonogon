@@ -605,6 +605,9 @@ export default function JonogonApp() {
     "transport-info" | "civic-signal" | "bazaar-watch" | "safe-report" | "rumor-buster" | "nrb-gateway" | "fee-calculator" | "doc-checker" | "scam-detector" | "volunteer-grid"
   >("transport-info");
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
+  const sideMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const sideMenuCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const wasSideMenuOpenRef = useRef(false);
   const [selectedTransportRouteId, setSelectedTransportRouteId] = useState<string>("metro-line-6");
   const [transportFilterType, setTransportFilterType] = useState<"all" | "metro" | "train" | "bus" | "intercity-bus" | "launch">("all");
   const [transportSearchTerm, setTransportSearchTerm] = useState<string>("");
@@ -651,6 +654,45 @@ export default function JonogonApp() {
   // NRB Remittance Calculator State
   const [remittanceAmount, setRemittanceAmount] = useState(1000);
   const [openCitizenServiceHelpId, setOpenCitizenServiceHelpId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isSideMenuOpen) {
+      sideMenuCloseButtonRef.current?.focus();
+    } else if (wasSideMenuOpenRef.current) {
+      sideMenuTriggerRef.current?.focus();
+    }
+    wasSideMenuOpenRef.current = isSideMenuOpen;
+
+    if (!isSideMenuOpen) return;
+
+    const handleMenuKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSideMenuOpen(false);
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+
+      const drawer = document.getElementById("main-navigation-drawer");
+      const focusableItems = drawer?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusableItems?.length) return;
+
+      const firstItem = focusableItems[0];
+      const lastItem = focusableItems[focusableItems.length - 1];
+      if (event.shiftKey && document.activeElement === firstItem) {
+        event.preventDefault();
+        lastItem.focus();
+      } else if (!event.shiftKey && document.activeElement === lastItem) {
+        event.preventDefault();
+        firstItem.focus();
+      }
+    };
+
+    window.addEventListener("keydown", handleMenuKeyDown);
+    return () => window.removeEventListener("keydown", handleMenuKeyDown);
+  }, [isSideMenuOpen]);
 
   // Sync dark mode class
   useEffect(() => {
@@ -935,6 +977,7 @@ export default function JonogonApp() {
       )}
 
       <aside
+        id="main-navigation-drawer"
         className={`fixed top-0 left-0 bottom-0 z-50 w-80 max-w-[85vw] transform transition-transform duration-300 ease-in-out border-r shadow-2xl flex flex-col ${
           isSideMenuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
@@ -944,6 +987,8 @@ export default function JonogonApp() {
           color: "var(--text-main)",
         }}
         aria-label={t("প্রধান নেভিগেশন মেনু", "Main navigation menu")}
+        aria-hidden={!isSideMenuOpen}
+        inert={!isSideMenuOpen}
       >
         {/* Drawer Header */}
         <div
@@ -967,6 +1012,7 @@ export default function JonogonApp() {
             </div>
           </div>
           <button
+            ref={sideMenuCloseButtonRef}
             onClick={() => setIsSideMenuOpen(false)}
             className="p-1.5 rounded-lg border transition-all hover:opacity-80 active:scale-95"
             style={{ borderColor: "var(--border-color)", color: "var(--text-main)", backgroundColor: "var(--surface)" }}
@@ -1006,7 +1052,7 @@ export default function JonogonApp() {
                   <div className="text-xs font-bold flex items-center gap-1.5" style={{ color: "var(--text-main)" }}>
                     {t("যাতায়াত ও পরিবহন তথ্য", "Transport Info")}
                     <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-600 text-white font-extrabold uppercase">
-                      {t("লাইভ ম্যাপ", "Live Map")}
+                      {t("রুট ম্যাপ", "Route Map")}
                     </span>
                   </div>
                   <div className="text-[10px] mt-0.5 line-clamp-1" style={{ color: "var(--text-muted)" }}>
@@ -1173,6 +1219,7 @@ export default function JonogonApp() {
           <div className="flex items-center space-x-3">
             {/* 3-Dash Menu Bar Button (on left side of Bangladesh flag) */}
             <button
+              ref={sideMenuTriggerRef}
               type="button"
               onClick={() => setIsSideMenuOpen(true)}
               className="p-2 rounded-xl border transition-all hover:opacity-80 active:scale-95 flex items-center justify-center shadow-xs cursor-pointer"
@@ -1183,6 +1230,8 @@ export default function JonogonApp() {
               }}
               title={t("সাইড মেনু খুলুন", "Open side navigation menu")}
               aria-label={t("সাইড মেনু খুলুন", "Open side navigation menu")}
+              aria-expanded={isSideMenuOpen}
+              aria-controls="main-navigation-drawer"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -1368,7 +1417,7 @@ export default function JonogonApp() {
               </div>
             </div>
 
-            {/* TAB CONTENT: 🚆 Transport Info & Live Bangladesh Route Map */}
+            {/* TAB CONTENT: Transport Info & Bangladesh Route Map */}
             {activeTab === "transport-info" && (
               <div className="space-y-6">
                 {/* Header Banner */}
@@ -1380,15 +1429,14 @@ export default function JonogonApp() {
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
                       <Compass className="w-3.5 h-3.5" />
                       <span>{t("বাংলাদেশ স্মার্ট গণপরিবহন ও যাতায়াত হাব", "Bangladesh Smart Transit & Mobility Hub")}</span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse ml-1" />
                     </div>
                     <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-2" style={{ color: "var(--text-main)" }}>
-                      {t("মেট্রোরেল, ট্রেন, বাস ও নৌপথের লাইভ রুট ও ভাড়ার বাতায়ন", "Live Route Mapping, Official Fares & Transport Intelligence")}
+                      {t("মেট্রোরেল, ট্রেন, বাস ও নৌপথের রুট, সময়সূচি ও ভাড়া", "Transport Routes, Timetables & Fares")}
                     </h2>
                     <p className="text-xs sm:text-sm leading-relaxed" style={{ color: "var(--text-muted)" }}>
                       {t(
-                        "বাংলাদেশ ম্যাপে গুগল ম্যাপসের মতোই লাইভ ইন্টারঅ্যাক্টিভ রুটের দৃশ্য, প্রতিটি স্টপেজের সঠিক সময়সূচি, সরকার-অনুমোদিত ভাড়ার চার্ট এবং সরাসরি অফিশিয়াল পোর্টাল থেকে ই-টিকিট কাটার ওয়ান-স্টপ সুবিধা।",
-                        "Live interactive route visualization on the Bangladesh map just like Google Maps, verified stoppage schedules, official government fare breakdowns, and direct redirects to official portals for hassle-free e-ticket booking."
+                        "মানচিত্রে রুটের আনুমানিক রেখা ও রেফারেন্স স্টপ দেখুন। এই সাইটে যানবাহনের লাইভ অবস্থান বা ট্রাফিক ফিড নেই। যাত্রার দিনের সময়সূচি, আসন ও ভাড়া সংশ্লিষ্ট সরকারি উৎস বা অপারেটরের লিংকে যাচাই করুন।",
+                        "The map shows indicative route lines and reference stops. This site does not have live vehicle locations or traffic feeds. Confirm travel-day schedules, seats, and fares through the linked transport authority or operator."
                       )}
                     </p>
                   </div>
@@ -1475,7 +1523,7 @@ export default function JonogonApp() {
                               {lang === "bn" ? route.typeLabelBn : route.typeLabelEn}
                             </span>
                             <span className="text-[10px] font-bold" style={{ color: "var(--primary-green)" }}>
-                              {route.distanceKm} km
+                              ≈ {route.distanceKm} km
                             </span>
                           </div>
                           <h4 className="text-sm font-bold leading-snug mb-1" style={{ color: "var(--text-main)" }}>
@@ -1500,15 +1548,15 @@ export default function JonogonApp() {
                   })}
                 </div>
 
-                {/* 🗺️ Interactive Live Route Bangladesh Map (Just like Google Maps) */}
+                {/* 🗺️ Interactive route reference map */}
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <h3 className="text-base font-bold flex items-center gap-2" style={{ color: "var(--text-main)" }}>
                       <MapPin className="w-4 h-4" style={{ color: "var(--primary-green)" }} />
-                      <span>{t("বাংলাদেশ লাইভ রুট মানচিত্র (গুগল ম্যাপস ভিউ)", "Live Route Map on Bangladesh Grid (Google Maps Style)")}</span>
+                      <span>{t("বাংলাদেশের ইন্টারঅ্যাক্টিভ রুট মানচিত্র", "Interactive Bangladesh Route Map")}</span>
                     </h3>
                     <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>
-                      {t("স্টেশনে ক্লিক করে বিস্তারিত দেখুন", "Click any stoppage for timings & fares")}
+                      {t("রুট পয়েন্টে ক্লিক করে অবস্থান দেখুন", "Click a route point to see its location")}
                     </span>
                   </div>
 
@@ -1550,7 +1598,7 @@ export default function JonogonApp() {
 
                     {/* Appealing CTA Redirect Buttons */}
                     <div className="flex flex-wrap items-center gap-2">
-                      {currentSelectedRoute.officialLinks.map((link, idx) => (
+                      {currentSelectedRoute.sourceLinks.map((link, idx) => (
                         <a
                           key={idx}
                           href={link.url}
@@ -1574,17 +1622,19 @@ export default function JonogonApp() {
                       ))}
 
                       {/* Google Maps Direct Navigation Button */}
-                      <a
-                        href={currentSelectedRoute.googleMapsDirectionsUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5 active:scale-95 hover:opacity-90"
-                        style={{ backgroundColor: "#1D4ED8" }}
-                      >
-                        <Navigation className="w-3.5 h-3.5" />
-                        <span>Google Maps</span>
-                        <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
-                      </a>
+                      {currentSelectedRoute.googleMapsDirectionsUrl && (
+                        <a
+                          href={currentSelectedRoute.googleMapsDirectionsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all shadow-sm flex items-center gap-1.5 active:scale-95 hover:opacity-90"
+                          style={{ backgroundColor: "#1D4ED8" }}
+                        >
+                          <Navigation className="w-3.5 h-3.5" />
+                          <span>Google Maps</span>
+                          <ExternalLink className="w-3 h-3 ml-0.5 opacity-70" />
+                        </a>
+                      )}
                     </div>
                   </div>
 
@@ -1592,7 +1642,7 @@ export default function JonogonApp() {
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div className="p-3.5 rounded-xl border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
                       <span className="text-[11px] font-semibold block mb-0.5" style={{ color: "var(--text-muted)" }}>
-                        {t("মোট দূরত্ব", "Total Distance")}
+                        {t("আনুমানিক দূরত্ব", "Approx. Distance")}
                       </span>
                       <span className="text-lg font-extrabold" style={{ color: "var(--text-main)" }}>
                         {currentSelectedRoute.distanceKm} km
@@ -1627,11 +1677,11 @@ export default function JonogonApp() {
                     </div>
                   </div>
 
-                  {/* Government Verified Fare Breakdown */}
+                  {/* Fare information and source lookups */}
                   <div>
                     <h4 className="text-sm font-bold flex items-center gap-2 mb-3" style={{ color: "var(--text-main)" }}>
                       <Calculator className="w-4 h-4" style={{ color: "var(--primary-green)" }} />
-                      <span>{t("সরকারি অনুমোদিত ভাড়ার চার্ট", "Government-Approved Official Fare Breakdown")}</span>
+                      <span>{t("ভাড়া ও বর্তমান উৎস", "Fare information and current sources")}</span>
                     </h4>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -1657,24 +1707,27 @@ export default function JonogonApp() {
                         </div>
                       ))}
                     </div>
+                    <p className="mt-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                      {t("দেখানো ভাড়া প্রকাশিত রেফারেন্স। পরিবর্তন, যাত্রার তারিখ ও শ্রেণিভেদে ভাড়া বদলাতে পারে—টিকিট কাটার আগে উপরের সরকারি/অপারেটর লিংকে নিশ্চিত করুন।", "Displayed fares are published references. They may change by date, class, or service; confirm on the linked authority or operator site before booking.")}
+                    </p>
                   </div>
 
-                  {/* Stoppage Stations Interactive Timeline */}
+                  {/* Route reference points */}
                   <div>
                     <h4 className="text-sm font-bold flex items-center gap-2 mb-3" style={{ color: "var(--text-main)" }}>
-                      <Clock className="w-4 h-4" style={{ color: "var(--primary-green)" }} />
-                      <span>{t("স্টেশন ও স্টপেজের সম্পূর্ণ তালিকা", "Complete Stoppages & Station Timeline")}</span>
+                      <Route className="w-4 h-4" style={{ color: "var(--primary-green)" }} />
+                      <span>{t("রুট পয়েন্টের তালিকা", "Route Reference Points")}</span>
                     </h4>
+                    <p className="mb-2 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                      {t("এটি সম্পূর্ণ স্টপেজ তালিকা বা সময়সূচি নয়। ট্রেনের প্রকৃত স্টপ ও ছাড়ার সময় সংশ্লিষ্ট সরকারি সময়সূচিতে যাচাই করুন।", "This is not a complete stoppage list or timetable. Confirm actual stops and departure times in the linked official timetable.")}
+                    </p>
 
                     <div className="overflow-x-auto rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
                       <table className="w-full text-left text-xs border-collapse">
                         <thead>
                           <tr className="border-b" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
                             <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>#</th>
-                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("স্টেশনের নাম", "Station Name")}</th>
-                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("সময়সূচি", "Departure")}</th>
-                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("মূল স্টেশন থেকে ভাড়া", "Fare from Origin")}</th>
-                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("সুযোগ-সুবিধা", "Amenities")}</th>
+                            <th className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>{t("স্টেশন / রুট পয়েন্ট", "Station / Route Point")}</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y" style={{ borderColor: "var(--border-color)" }}>
@@ -1696,29 +1749,6 @@ export default function JonogonApp() {
                                   </span>
                                 )}
                               </td>
-                              <td className="py-2.5 px-3 font-medium" style={{ color: "var(--primary-green)" }}>
-                                {st.departureTime || "—"}
-                              </td>
-                              <td className="py-2.5 px-3 font-bold" style={{ color: "var(--text-main)" }}>
-                                {lang === "bn" ? (st.fareFromStartBn || "—") : (st.fareFromStartEn || "—")}
-                              </td>
-                              <td className="py-2.5 px-3">
-                                {st.amenitiesBn && st.amenitiesBn.length > 0 ? (
-                                  <div className="flex flex-wrap gap-1">
-                                    {(lang === "bn" ? st.amenitiesBn : st.amenitiesEn)?.map((am, aIdx) => (
-                                      <span
-                                        key={aIdx}
-                                        className="text-[10px] px-2 py-0.5 rounded-md border"
-                                        style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--text-muted)" }}
-                                      >
-                                        {am}
-                                      </span>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <span className="text-[10px] opacity-60" style={{ color: "var(--text-muted)" }}>{t("স্ট্যান্ডার্ড প্ল্যাটফর্ম", "Standard Platform")}</span>
-                                )}
-                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -1729,26 +1759,26 @@ export default function JonogonApp() {
                   {/* Transit Policy & Guidelines Accordion */}
                   <div className="p-4 rounded-xl border space-y-3" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
                     <div className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--text-subtle)" }}>
-                      {t("বাংলাদেশ গণপরিবহন সরকারি নীতিমালা ও টিকিট কেনার নির্দেশিকা", "Official Transit Policies & Ticket Booking Guidelines")}
+                      {t("সময়সূচি, ভাড়া ও টিকিট যাচাইয়ের উৎস", "Where to verify schedules, fares & tickets")}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs leading-relaxed" style={{ color: "var(--text-muted)" }}>
                       <div className="p-3 rounded-lg border bg-surface" style={{ borderColor: "var(--border-color)" }}>
                         <span className="font-bold block mb-1" style={{ color: "var(--text-main)" }}>
-                          🚇 {t("মেট্রোরেল র‍্যাপিড পাস", "Metro MRT Pass")}
+                          🚇 {t("মেট্রোরেল ভাড়া ও পাস", "Metro fare & pass")}
                         </span>
-                        <span>{t("র‍্যাপিড পাস বা এমআরটি পাস ব্যবহারকারীদের প্রতিটি একক যাত্রায় স্বয়ংক্রিয়ভাবে ১০% ডিসকাউন্ট প্রদান করা হয়।", "Rapid Pass holders enjoy an automatic 10% rebate on every single ride across all MRT Line-6 stations.")}</span>
+                        <span>{t("ডিএমটিসিএল-এর ভাড়ার তালিকা ও পাসের বর্তমান শর্ত উপরের সরকারি লিংকে দেখুন।", "See DMTCL's official fare chart and current pass terms using the source links above.")}</span>
                       </div>
                       <div className="p-3 rounded-lg border bg-surface" style={{ borderColor: "var(--border-color)" }}>
                         <span className="font-bold block mb-1" style={{ color: "var(--text-main)" }}>
-                          🚆 {t("রেলওয়ে ই-টিকিট রিফান্ড", "Railway E-Ticket Refund")}
+                          🚆 {t("ট্রেনের সময় ও টিকিট", "Train times & tickets")}
                         </span>
-                        <span>{t("যাত্রা শুরুর ৪৮ ঘণ্টা পূর্বে টিকিট ফেরত দিলে ১০%, ২৪ ঘণ্টায় ২৫% এবং ১২ ঘণ্টায় ৫০% কর্তন করে অনলাইন রিফান্ড পাওয়া যায়।", "Railway tickets can be cancelled online up to 48 hours before departure with standard refund rules via eticket.railway.gov.bd.")}</span>
+                        <span>{t("যাত্রার তারিখ দিয়ে বাংলাদেশ রেলওয়ের ই-টিকিটে সময়, আসন ও ভাড়া দেখুন; বাতিলের শর্ত বুকিংয়ের সময় যাচাই করুন।", "Search Bangladesh Railway e-ticketing by travel date for times, seats, and fares; confirm cancellation terms during booking.")}</span>
                       </div>
                       <div className="p-3 rounded-lg border bg-surface" style={{ borderColor: "var(--border-color)" }}>
                         <span className="font-bold block mb-1" style={{ color: "var(--text-main)" }}>
-                          🚌 {t("বাসে শিক্ষার্থী হাফ পাস", "Student Half Pass")}
+                          🚌 {t("বাসের রুট ও ভাড়া", "Bus routes & fares")}
                         </span>
-                        <span>{t("ঢাকা মহানগরীর সকল রুটের সিটি বাসে শিক্ষার্থীদের জন্য বিআরটিএ প্রজ্ঞাপন অনুযায়ী ইউনিফর্ম বা বৈধ আইডি কার্ড প্রদর্শনে হাফ পাস প্রযোজ্য।", "Students with valid ID cards are eligible for the BRTA mandated 50% concession on Dhaka metropolitan city buses.")}</span>
+                        <span>{t("বিআরটিসির প্রকাশিত রুট ও ভাড়া দেখুন; যাত্রার আগে সেবা চালু আছে কি না নিশ্চিত করুন।", "Check BRTC's published routes and fares, and confirm the service is operating before travel.")}</span>
                       </div>
                     </div>
                   </div>

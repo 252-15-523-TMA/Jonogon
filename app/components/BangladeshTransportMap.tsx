@@ -209,8 +209,7 @@ export default function BangladeshTransportMap({
             <div style="font-weight: 700; color: #18332A; margin-bottom: 3px;">
               ${lang === "bn" ? station.nameBn : station.nameEn}
             </div>
-            ${station.departureTime ? `<div style="color: #006A4E; font-size: 11px; font-weight: 600;">🕒 ${lang === "bn" ? "সময়সূচি:" : "Time:"} ${station.departureTime}</div>` : ""}
-            ${station.fareFromStartBn ? `<div style="color: #526B60; font-size: 11px;">💰 ${lang === "bn" ? "ভাড়া:" : "Fare:"} ${lang === "bn" ? station.fareFromStartBn : station.fareFromStartEn}</div>` : ""}
+            <div style="color: #526B60; font-size: 11px;">${lang === "bn" ? "রুটের রেফারেন্স পয়েন্ট" : "Route reference point"}</div>
           </div>
         `);
 
@@ -266,7 +265,7 @@ export default function BangladeshTransportMap({
             }}
           >
             <Compass className="w-3.5 h-3.5" />
-            {t("লাইভ রুট ম্যাপ", "Live Route Map")}
+            {t("রুট রেফারেন্স ম্যাপ", "Route Reference Map")}
           </span>
 
           {/* Quick Route Selector Pills */}
@@ -342,18 +341,20 @@ export default function BangladeshTransportMap({
           </button>
 
           {/* Google Maps External Navigation Button */}
-          <a
-            href={selectedRoute.googleMapsDirectionsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white flex items-center gap-1 shadow-sm transition-all hover:opacity-90 active:scale-95"
-            style={{ backgroundColor: "#2563EB" }}
-            title={t("গুগল ম্যাপে সরাসরি খুলুন", "Open in Google Maps")}
-          >
-            <Navigation className="w-3 h-3" />
-            <span>Google Maps</span>
-            <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
-          </a>
+          {selectedRoute.googleMapsDirectionsUrl && (
+            <a
+              href={selectedRoute.googleMapsDirectionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-bold text-white flex items-center gap-1 shadow-sm transition-all hover:opacity-90 active:scale-95"
+              style={{ backgroundColor: "#2563EB" }}
+              title={t("গুগল ম্যাপে সরাসরি খুলুন", "Open in Google Maps")}
+            >
+              <Navigation className="w-3 h-3" />
+              <span>Google Maps</span>
+              <ExternalLink className="w-2.5 h-2.5 ml-0.5" />
+            </a>
+          )}
         </div>
       </div>
 
@@ -399,7 +400,7 @@ export default function BangladeshTransportMap({
         <div className="flex items-center justify-between gap-2 mb-1">
           <div className="flex items-center gap-1.5">
             <span
-              className="w-2 h-2 rounded-full animate-ping"
+              className="w-2 h-2 rounded-full"
               style={{ backgroundColor: "var(--primary-green)" }}
             />
             <span className="text-xs font-bold" style={{ color: "var(--text-main)" }}>
@@ -413,7 +414,7 @@ export default function BangladeshTransportMap({
               color: "var(--primary-green)",
             }}
           >
-            {selectedRoute.distanceKm} km • {lang === "bn" ? selectedRoute.durationBn : selectedRoute.durationEn}
+            ≈ {selectedRoute.distanceKm} km • {lang === "bn" ? selectedRoute.durationBn : selectedRoute.durationEn}
           </span>
         </div>
         <p className="text-[11px] line-clamp-1" style={{ color: "var(--text-muted)" }}>
@@ -428,11 +429,9 @@ export default function BangladeshTransportMap({
             <span className="font-semibold" style={{ color: "var(--primary-green)" }}>
               📍 {lang === "bn" ? selectedStation.nameBn : selectedStation.nameEn}
             </span>
-            {selectedStation.fareFromStartBn && (
-              <span className="text-[10px] font-bold" style={{ color: "var(--text-main)" }}>
-                {t("ভাড়া:", "Fare:")} {lang === "bn" ? selectedStation.fareFromStartBn : selectedStation.fareFromStartEn}
-              </span>
-            )}
+            <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+              {t("রুট পয়েন্ট", "Reference point")}
+            </span>
           </div>
         )}
       </div>

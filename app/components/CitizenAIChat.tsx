@@ -374,6 +374,9 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
       const payload = await response.json().catch(() => ({})) as { text?: string; code?: string };
       if (!response.ok || !payload.text) {
         if (payload.code === "not_configured") throw new Error(translate(lang, "AI চ্যাট চালু করতে সাইট মালিককে OpenAI API key ও model যোগ করতে হবে।", "AI chat is not connected yet. The site owner must configure an OpenAI API key and model."));
+        if (payload.code === "rate_limited") throw new Error(translate(lang, "এই নেটওয়ার্ক থেকে অনেক বার্তা পাঠানো হয়েছে। এক মিনিট পরে আবার চেষ্টা করুন।", "Too many messages came from this network. Please wait about a minute and try again."));
+        if (payload.code === "provider_rate_limited") throw new Error(translate(lang, "AI সেবা ব্যস্ত আছে। একটু পরে আবার চেষ্টা করুন।", "The AI service is busy. Please wait a moment and try again."));
+        if (payload.code === "provider_quota_exceeded") throw new Error(translate(lang, "AI সেবা এই মুহূর্তে অনুপলব্ধ। পরে আবার চেষ্টা করুন।", "The AI service is temporarily unavailable. Please try again later."));
         if (response.status === 429) throw new Error(translate(lang, "অনেক অনুরোধ এসেছে। একটু পরে আবার চেষ্টা করুন।", "Too many requests. Please try again shortly."));
         throw new Error(translate(lang, "উত্তর পাওয়া যায়নি। আবার চেষ্টা করুন।", "No answer was received. Please try again."));
       }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ShieldAlert,
@@ -23,7 +24,6 @@ import {
   Moon,
   Languages,
   Send,
-  Users,
   Compass,
   HeartHandshake,
   Bot,
@@ -33,7 +33,6 @@ import {
   Eye,
   RefreshCw,
   Globe2,
-  Award,
   X,
   ShieldCheck,
   ChevronDown,
@@ -51,12 +50,13 @@ import {
   UserPlus,
   LogOut
 } from "lucide-react";
-import { TRANSPORT_ROUTES, TransportRoute } from "../transport-data";
+import { TRANSPORT_ROUTES } from "../transport-data";
 import BangladeshTransportMap from "./BangladeshTransportMap";
 import AccountPages from "./AccountPages";
 import OfficialServicePages, { type OfficialServicePage } from "./OfficialServicePages";
 import CitizenAIChat, { CITIZEN_CHAT_PENDING_PROMPT_KEY } from "./CitizenAIChat";
 import PublicServiceSearch, { type PublicServiceSearchItem } from "./PublicServiceSearch";
+import ServiceFeatureCarousel from "./ServiceFeatureCarousel";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export type FeaturePage =
@@ -79,6 +79,7 @@ export type FeaturePage =
 export type JonogonPage =
   | "home"
   | "chat"
+  | "citizen-service"
   | FeaturePage
   | "govcopilot"
   | "login"
@@ -176,6 +177,10 @@ const INITIAL_REPORTS = [
     aiReasoningEn: "Streetlight replacement verified complete. New LED fittings validated."
   }
 ];
+
+type CivicReport = (typeof INITIAL_REPORTS)[number];
+type DocumentCheckResult = { clarity: string; mismatches: string; missingItems: string; isReady: boolean };
+type DocumentCheckState = { status: "analyzing" } | { status: "completed"; results: DocumentCheckResult };
 
 type CitizenServiceCard = {
   id: string;
@@ -635,18 +640,19 @@ const FEATURE_SEARCH_ENTRIES: PublicServiceSearchItem[] = [
   { id: "feature-rejection", page: "rejection-explainer", titleBn: "আবেদন বাতিলের কারণ ব্যাখ্যা", titleEn: "Rejection Reason Explainer", descriptionBn: "বাতিল বার্তা বুঝুন ও পরবর্তী ধাপ জানুন", descriptionEn: "Understand a rejection and see suggested next steps", keywords: "rejected declined refusal application reason next steps" },
 ];
 
-export default function JonogonApp({ initialPage = "home" }: { initialPage?: JonogonPage }) {
+export default function JonogonApp({ initialPage = "home", initialServiceId }: { initialPage?: JonogonPage; initialServiceId?: string }) {
   const router = useRouter();
   const [lang, setLang] = useState<"bn" | "en">("bn");
   const [darkMode, setDarkMode] = useState(false);
-  const [activePortal, setActivePortal] = useState<"citizen" | "gov">("citizen");
-  const [selectedReportForInspect, setSelectedReportForInspect] = useState<any | null>(null);
+  const [activePortal, setActivePortal] = useState<"citizen" | "gov">(initialPage === "govcopilot" ? "gov" : "citizen");
+  const [selectedReportForInspect, setSelectedReportForInspect] = useState<CivicReport | null>(null);
 
   const [activePage, setActivePage] = useState<JonogonPage>(initialPage);
+  const [activeServiceId, setActiveServiceId] = useState(initialServiceId ?? "");
   const [accountUser, setAccountUser] = useState<{ id: string; email?: string; nickname?: string; avatarUrl?: string; role?: string } | null>(null);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
-  const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
+  const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(() => isFeaturePage(initialPage) || initialPage === "govcopilot");
   const [isPublicSearchOpen, setIsPublicSearchOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [citizenSearchDraft, setCitizenSearchDraft] = useState("");
@@ -666,8 +672,10 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
     setActivePage(page);
     if (isFeaturePage(page)) {
       setActivePortal("citizen");
+      setIsFeatureMenuOpen(true);
     } else if (page === "govcopilot") {
       setActivePortal("gov");
+      setIsFeatureMenuOpen(true);
     } else if (page === "home") {
       setActivePortal("citizen");
     }
@@ -702,7 +710,10 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
 
   useEffect(() => {
     const storedLanguage = window.localStorage.getItem("jonogon-language");
-    if (storedLanguage === "bn" || storedLanguage === "en") setLang(storedLanguage);
+    if (storedLanguage === "bn" || storedLanguage === "en") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Restore the persisted preference after hydration to avoid a server/client mismatch.
+      setLang(storedLanguage);
+    }
   }, []);
 
   useEffect(() => {
@@ -732,24 +743,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
   }, [isSettingsOpen]);
 
   useEffect(() => {
-    setActivePage(initialPage);
-    if (isFeaturePage(initialPage)) {
-      setActivePortal("citizen");
-    } else if (initialPage === "govcopilot") {
-      setActivePortal("gov");
-    } else {
-      setActivePortal("citizen");
-    }
-  }, [initialPage]);
-
-  useEffect(() => {
-    if (isFeaturePage(activePage) || activePage === "govcopilot") setIsFeatureMenuOpen(true);
-  }, [activePage]);
-
-  useEffect(() => {
     if (!isSupabaseConfigured()) {
-      setAccountUser(null);
-      setUnreadNotificationCount(0);
       return;
     }
 
@@ -844,7 +838,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
 
   // Document Checker State
   const [docFileUploaded, setDocFileUploaded] = useState(false);
-  const [docAnalysis, setDocAnalysis] = useState<{ status: "ready" | "analyzing" | "completed"; results?: any } | null>(null);
+  const [docAnalysis, setDocAnalysis] = useState<DocumentCheckState | null>(null);
 
   // NRB Remittance Calculator State
   const [remittanceAmount, setRemittanceAmount] = useState(1000);
@@ -1085,6 +1079,11 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
     return [...FEATURE_SEARCH_ENTRIES, ...documentSearchItems];
   }, []);
 
+  const carouselItems = useMemo(
+    () => publicSearchItems.filter((item) => (item.page && item.page !== "home") || item.id === `service-${item.serviceId}`),
+    [publicSearchItems],
+  );
+
   const selectPublicSearchItem = (item: PublicServiceSearchItem) => {
     setIsPublicSearchOpen(false);
     if (item.href) {
@@ -1100,7 +1099,21 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
     if (item.page) navigateTo(item.page as JonogonPage);
   };
 
+  const openCarouselItem = (item: PublicServiceSearchItem) => {
+    if (item.serviceId && item.id === `service-${item.serviceId}`) {
+      setActivePage("citizen-service");
+      setActiveServiceId(item.serviceId);
+      setIsSideMenuOpen(false);
+      setIsSettingsOpen(false);
+      router.push(`/services/${item.serviceId}`);
+      return;
+    }
+    selectPublicSearchItem(item);
+  };
+
   const isAccountPage = ["login", "signup", "profile", "feedback", "notifications", "owner", "owner-setup"].includes(activePage);
+  const activeCitizenService = CITIZEN_SERVICES.find((service) => service.id === activeServiceId);
+  const ActiveCitizenServiceIcon = activeCitizenService?.icon;
 
   return (
     <div className="min-h-screen flex flex-col transition-colors duration-200">
@@ -1465,7 +1478,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
 
             {accountUser && (
               <Link href="/profile" className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }} aria-label={t("প্রোফাইল সম্পাদনা করুন", "Edit profile")} title={accountUser.nickname || accountUser.email}>
-                {accountUser.avatarUrl ? <img src={accountUser.avatarUrl} alt="" className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}
+                {accountUser.avatarUrl ? <Image src={accountUser.avatarUrl} alt="" fill sizes="36px" unoptimized className="object-cover" /> : <UserRound className="h-4 w-4" />}
               </Link>
             )}
 
@@ -1545,6 +1558,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
                     <p className="mt-2 max-w-2xl text-xs leading-5 sm:text-sm" style={{ color: "var(--text-muted)" }}>
                       {t("বাংলা বা ইংরেজিতে আপনার প্রশ্ন লিখুন—সরকারি সেবার পরবর্তী ধাপ খুঁজে নিন।", "Type your question in Bangla or English to get help with your next step in a public service.")}
                     </p>
+                    <ServiceFeatureCarousel lang={lang} items={carouselItems} onSelect={openCarouselItem} />
                     <form onSubmit={submitCitizenSearch} className="mt-6 w-full max-w-3xl">
                       <div className="flex min-h-14 items-center gap-3 rounded-2xl border px-3 py-2 shadow-sm transition focus-within:border-[#006A4E] focus-within:ring-2 focus-within:ring-[#006A4E]/15 sm:min-h-16 sm:px-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)" }}>
                         <Search className="h-5 w-5 shrink-0" style={{ color: "var(--primary-green)" }} />
@@ -1558,6 +1572,94 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
                   </div>
                 </section>
               </>
+            )}
+
+            {activePage === "citizen-service" && (
+              <section className="mx-auto w-full max-w-5xl space-y-5" aria-labelledby="citizen-service-detail-title">
+                <button
+                  type="button"
+                  onClick={() => navigateTo("home")}
+                  className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:opacity-75"
+                  style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)", color: "var(--text-main)" }}
+                >
+                  <ArrowRight className="h-4 w-4 rotate-180" />
+                  {t("সব সেবায় ফিরে যান", "Back to all services")}
+                </button>
+                {activeCitizenService && ActiveCitizenServiceIcon ? (
+                  <>
+                    <header className="overflow-hidden rounded-3xl border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                      <div className="h-1.5 bg-gradient-to-r from-[#006A4E] via-[#51A884] to-[#D14949]" />
+                      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:p-7">
+                        <span className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                          <ActiveCitizenServiceIcon className="h-8 w-8" />
+                        </span>
+                        <div>
+                          <span className="mb-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }}>
+                            {t("নাগরিক সেবা নির্দেশিকা", "Citizen service guide")}
+                          </span>
+                          <h1 id="citizen-service-detail-title" className="text-xl font-extrabold sm:text-2xl" style={{ color: "var(--text-main)" }}>
+                            {t(activeCitizenService.titleBn, activeCitizenService.titleEn)}
+                          </h1>
+                          <p className="mt-1 max-w-3xl text-xs leading-5 sm:text-sm" style={{ color: "var(--text-muted)" }}>
+                            {t(activeCitizenService.descriptionBn, activeCitizenService.descriptionEn)}
+                          </p>
+                        </div>
+                      </div>
+                    </header>
+
+                    <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
+                      <section className="rounded-2xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                        <h2 className="text-base font-bold" style={{ color: "var(--text-main)" }}>{t("সাধারণ ধাপ", "Typical steps")}</h2>
+                        <ol className="mt-4 list-decimal space-y-3 pl-5 text-xs leading-5 sm:text-sm" style={{ color: "var(--text-main)" }}>
+                          {(lang === "bn" ? activeCitizenService.stepsBn : activeCitizenService.stepsEn).map((step) => <li key={step} className="pl-1">{step}</li>)}
+                        </ol>
+                      </section>
+                      <section className="rounded-2xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                        <h2 className="text-base font-bold" style={{ color: "var(--text-main)" }}>{t("সাধারণ প্রশ্ন", "Common questions")}</h2>
+                        <div className="mt-3 space-y-2">
+                          {activeCitizenService.faqs.map((faq) => (
+                            <details key={faq.questionEn} className="citizen-service-faq rounded-xl border" style={{ borderColor: "var(--border-color)" }}>
+                              <summary className="citizen-service-faq-summary flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-3 text-xs font-semibold" style={{ color: "var(--text-main)" }}>
+                                <span>{t(faq.questionBn, faq.questionEn)}</span>
+                                <ChevronDown className="citizen-service-faq-chevron h-4 w-4 shrink-0 transition-transform" />
+                              </summary>
+                              <ol className="list-decimal space-y-2 px-4 pb-4 pl-8 text-xs leading-5" style={{ color: "var(--text-muted)" }}>
+                                {(lang === "bn" ? faq.stepsBn : faq.stepsEn).map((step, index) => <li key={`${faq.questionEn}-${index}`}>{step}</li>)}
+                              </ol>
+                            </details>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+
+                    <section className="rounded-2xl border p-4 shadow-sm sm:p-5" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
+                      <h2 className="text-base font-bold" style={{ color: "var(--text-main)" }}>{t("সরকারি পোর্টাল", "Official portals")}</h2>
+                      <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                        {t("আবেদন বা ব্যক্তিগত তথ্য যাচাই করতে সংশ্লিষ্ট সরকারি ওয়েবসাইট ব্যবহার করুন।", "Use the relevant government website to apply or access personal records.")}
+                      </p>
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {activeCitizenService.actions.map((action) => (
+                          <a
+                            key={action.href}
+                            href={action.href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex min-h-12 items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-xs font-semibold transition hover:opacity-75"
+                            style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--primary-green)" }}
+                          >
+                            <span>{t(action.labelBn, action.labelEn)}</span>
+                            <ArrowRight className="h-4 w-4 shrink-0" />
+                          </a>
+                        ))}
+                      </div>
+                    </section>
+                  </>
+                ) : (
+                  <div className="rounded-2xl border p-6 text-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)", color: "var(--text-muted)" }}>
+                    {t("এই সেবাটি পাওয়া যায়নি।", "This service could not be found.")}
+                  </div>
+                )}
+              </section>
             )}
 
             {/* TAB CONTENT: Transport Info & Bangladesh Route Map */}
@@ -1600,7 +1702,7 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
                         return (
                           <button
                             key={mode.id}
-                            onClick={() => setTransportFilterType(mode.id as any)}
+                            onClick={() => setTransportFilterType(mode.id as typeof transportFilterType)}
                             className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border flex items-center gap-1.5 cursor-pointer ${
                               isSelected ? "shadow-sm font-bold" : "opacity-80 hover:opacity-100"
                             }`}

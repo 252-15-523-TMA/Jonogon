@@ -30,7 +30,7 @@ const publicPages = new Set<JonogonPage>([
 async function SectionPageContent({ params }: { params: Promise<{ section: string }> }) {
   const { section } = await params;
   if (!publicPages.has(section as JonogonPage)) notFound();
-  return <JonogonApp initialPage={section as JonogonPage} />;
+  return <JonogonApp key={section} initialPage={section as JonogonPage} />;
 }
 
 export default function SectionPage({ params }: { params: Promise<{ section: string }> }) {

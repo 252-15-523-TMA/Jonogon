@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { ArrowUp, BookOpenText, Cloud, CloudCheck, Landmark, LoaderCircle, MessageSquare, Mic, MicOff, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -361,7 +361,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     setVoiceNotice(next === "bn" ? translate(lang, "ভয়েস ইনপুটের ভাষা বাংলা করা হয়েছে।", "Voice input language set to Bangla.") : translate(lang, "ভয়েস ইনপুটের ভাষা ইংরেজি করা হয়েছে।", "Voice input language set to English."));
   };
 
-  const submitMessage = async (event?: FormEvent<HTMLFormElement>, promptOverride?: string, startNewConversation = false) => {
+  const submitMessage = useCallback(async (event?: FormEvent<HTMLFormElement>, promptOverride?: string, startNewConversation = false) => {
     event?.preventDefault();
     const text = (promptOverride ?? draft).trim();
     if (!text || isSending) return;
@@ -403,7 +403,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     } finally {
       setIsSending(false);
     }
-  };
+  }, [activeConversationId, conversations, draft, isSending, lang]);
 
   useEffect(() => {
     if (!hasLoadedHistory || !accountReady || !pendingInitialPromptRef.current) return;

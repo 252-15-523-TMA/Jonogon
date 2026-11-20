@@ -1,7 +1,8 @@
 "use client";
 
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Bell, Check, Mail, Save, Send, ShieldCheck, Upload, UserRound } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -31,10 +32,10 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
   const [message, setMessage] = useState("");
   const [toast, setToast] = useState("");
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => mode !== "owner-setup" && isSupabaseConfigured());
   const [isSaving, setIsSaving] = useState(false);
 
-  const t = (bn: string, en: string) => (lang === "bn" ? bn : en);
+  const t = useCallback((bn: string, en: string) => (lang === "bn" ? bn : en), [lang]);
   const isAuthPage = mode === "login" || mode === "signup";
   const isOwnerPage = mode === "owner";
 
@@ -45,25 +46,18 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
   }, [toast]);
 
   useEffect(() => {
-    if (mode === "owner-setup") {
-      setIsLoading(false);
-      return;
-    }
-    if (!isSupabaseConfigured()) {
-      if (!isAuthPage) setError(t("অ্যাকাউন্ট সেবা চালু করতে Supabase সেটআপ প্রয়োজন।", "Supabase setup is required to enable account services."));
-      setIsLoading(false);
-      return;
-    }
+    if (mode === "owner-setup" || !isSupabaseConfigured()) return;
 
     const supabase = createClient();
     const justConfirmedEmail = mode === "profile" && new URLSearchParams(window.location.search).get("auth") === "confirmed";
-    if (mode === "login" && new URLSearchParams(window.location.search).get("auth") === "confirmation-failed") {
-      setError(t("ইমেইল নিশ্চিত করা যায়নি। লিংকটি আবার চেষ্টা করুন বা নতুন নিশ্চিতকরণ ইমেইল চাইুন।", "Email confirmation failed. Try the link again or request a new confirmation email."));
-    }
+    const confirmationFailed = mode === "login" && new URLSearchParams(window.location.search).get("auth") === "confirmation-failed";
     let cancelled = false;
     const load = async () => {
       const { data: { user: signedInUser } } = await supabase.auth.getUser();
       if (cancelled) return;
+      if (confirmationFailed) {
+        setError(t("ইমেইল নিশ্চিত করা যায়নি। লিংকটি আবার চেষ্টা করুন বা নতুন নিশ্চিতকরণ ইমেইল চাইুন।", "Email confirmation failed. Try the link again or request a new confirmation email."));
+      }
       if (signedInUser) {
         const signedIn = { id: signedInUser.id, email: signedInUser.email || "" };
         setUser(signedIn);
@@ -135,7 +129,7 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
 
     void load();
     return () => { cancelled = true; };
-  }, [mode, isAuthPage, isOwnerPage, lang]);
+  }, [mode, isAuthPage, isOwnerPage, lang, t]);
 
   const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -355,8 +349,8 @@ export default function AccountPages({ mode, lang }: { mode: AccountPageMode; la
           <div className="max-w-2xl">
             <div className="flex items-center gap-3"><UserRound className="h-6 w-6" style={{ color: "var(--primary-green)" }} /><div><h2 className="text-xl font-bold">{t("আমার প্রোফাইল", "My profile")}</h2><p className="text-sm" style={{ color: "var(--text-muted)" }}>{t("আপনার পরিচিতির তথ্য সম্পাদনা করুন।", "Edit the information shown on your profile.")}</p></div></div>
             <div className="mt-5 flex items-center gap-4">
-              <div className="h-20 w-20 overflow-hidden rounded-full border flex items-center justify-center" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
-                {avatarUrl ? <img src={avatarUrl} alt={t("প্রোফাইল ছবি", "Profile picture")} className="h-full w-full object-cover" /> : <UserRound className="h-8 w-8" style={{ color: "var(--text-muted)" }} />}
+              <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+                {avatarUrl ? <Image src={avatarUrl} alt={t("প্রোফাইল ছবি", "Profile picture")} fill sizes="80px" unoptimized className="object-cover" /> : <UserRound className="h-8 w-8" style={{ color: "var(--text-muted)" }} />}
               </div>
               <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold" style={{ borderColor: "var(--border-color)" }}><Upload className="h-4 w-4" />{t("ছবি বাছুন", "Choose picture")}<input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" disabled={isSaving} onChange={(event) => void uploadAvatar(event.target.files?.[0])} /></label>
               <span className="text-xs" style={{ color: "var(--text-muted)" }}>{t("সর্বোচ্চ ৫ এমবি", "Up to 5 MB")}</span>

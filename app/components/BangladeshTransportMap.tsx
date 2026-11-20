@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { TransportRoute } from "../transport-data";
+import type { LayerGroup as LeafletLayerGroup, Map as LeafletMap, TileLayer as LeafletTileLayer } from "leaflet";
+import { TransportRoute, TransportStation } from "../transport-data";
 import {
-  MapPin,
   ExternalLink,
   Layers,
   ZoomIn,
@@ -11,8 +11,6 @@ import {
   LocateFixed,
   Maximize2,
   Navigation,
-  Train,
-  Bus,
   Compass,
 } from "lucide-react";
 
@@ -32,12 +30,12 @@ export default function BangladeshTransportMap({
   darkMode,
 }: Props) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const layerGroupRef = useRef<any>(null);
-  const tileLayerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<LeafletMap | null>(null);
+  const layerGroupRef = useRef<LeafletLayerGroup | null>(null);
+  const tileLayerRef = useRef<LeafletTileLayer | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [mapLayerType, setMapLayerType] = useState<"standard" | "satellite">("standard");
-  const [selectedStation, setSelectedStation] = useState<any | null>(null);
+  const [selectedStation, setSelectedStation] = useState<TransportStation | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const t = (bn: string, en: string) => (lang === "bn" ? bn : en);
@@ -73,14 +71,7 @@ export default function BangladeshTransportMap({
         });
 
         // Default Tile layer (OpenStreetMap)
-        const tileUrl =
-          mapLayerType === "satellite"
-            ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            : darkMode
-            ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-
-        const tileLayer = L.tileLayer(tileUrl, {
+        const tileLayer = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
           maxZoom: 19,
           attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map);
@@ -110,7 +101,8 @@ export default function BangladeshTransportMap({
 
   // Update Tile Layer when Dark Mode or Satellite changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !tileLayerRef.current) return;
+    const tileLayer = tileLayerRef.current;
+    if (!mapReady || !tileLayer) return;
     const tileUrl =
       mapLayerType === "satellite"
         ? "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
@@ -118,16 +110,18 @@ export default function BangladeshTransportMap({
         ? "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-    tileLayerRef.current.setUrl(tileUrl);
-  }, [darkMode, mapLayerType]);
+    tileLayer.setUrl(tileUrl);
+  }, [darkMode, mapLayerType, mapReady]);
 
   // Redraw Route and Markers when selectedRoute changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !layerGroupRef.current) return;
+    if (!mapReady) return;
 
     async function drawRoute() {
       const L = (await import("leaflet")).default;
       const group = layerGroupRef.current;
+      const map = mapInstanceRef.current;
+      if (!group || !map) return;
       group.clearLayers();
 
       const colorMap: Record<string, string> = {
@@ -159,7 +153,7 @@ export default function BangladeshTransportMap({
 
         // Fit map bounds to polyline
         const bounds = polyline.getBounds();
-        mapInstanceRef.current.flyToBounds(bounds, {
+        map.flyToBounds(bounds, {
           padding: [50, 50],
           maxZoom: 14,
           duration: 1.2,
@@ -218,7 +212,7 @@ export default function BangladeshTransportMap({
     }
 
     drawRoute();
-  }, [selectedRoute, lang]);
+  }, [selectedRoute, lang, mapReady]);
 
   const handleZoomIn = () => {
     if (mapInstanceRef.current) mapInstanceRef.current.zoomIn();
@@ -232,8 +226,10 @@ export default function BangladeshTransportMap({
     if (!mapInstanceRef.current || !selectedRoute.waypoints.length) return;
     async function reset() {
       const L = (await import("leaflet")).default;
+      const map = mapInstanceRef.current;
+      if (!map) return;
       const bounds = L.latLngBounds(selectedRoute.waypoints);
-      mapInstanceRef.current.flyToBounds(bounds, { padding: [50, 50], duration: 1 });
+      map.flyToBounds(bounds, { padding: [50, 50], duration: 1 });
     }
     reset();
   };

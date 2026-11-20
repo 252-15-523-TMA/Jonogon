@@ -66,18 +66,15 @@ input, select, textarea, button {
   background: var(--text-muted);
 }
 
-@keyframes feature-carousel-loop {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+.service-feature-card {
+  transition: transform 720ms cubic-bezier(0.22, 0.7, 0.24, 1), opacity 720ms ease, filter 720ms ease, border-color 720ms ease, box-shadow 720ms ease;
+  will-change: transform, opacity, filter;
 }
 
-.feature-carousel-track {
-  animation: feature-carousel-loop 26s linear infinite;
-  will-change: transform;
+@media (prefers-reduced-motion: reduce) {
+  .service-feature-card {
+    transition-duration: 0ms;
+  }
 }
 
 .citizen-service-faq-summary::-webkit-details-marker {

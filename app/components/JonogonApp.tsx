@@ -1455,8 +1455,8 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
         </div>
 
         {/* Main Branding Navigation */}
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
+        <div className="relative mx-auto grid w-full max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 px-4 py-3.5 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:gap-3 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center space-x-2 sm:space-x-3">
             {/* 3-Dash Menu Bar Button (on left side of Bangladesh flag) */}
             <button
               ref={sideMenuTriggerRef}
@@ -1477,7 +1477,7 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
             </button>
 
             {accountUser && (
-              <Link href="/profile" className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }} aria-label={t("প্রোফাইল সম্পাদনা করুন", "Edit profile")} title={accountUser.nickname || accountUser.email}>
+              <Link href="/profile" className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full border" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }} aria-label={t("প্রোফাইল সম্পাদনা করুন", "Edit profile")} title={accountUser.nickname || accountUser.email}>
                 {accountUser.avatarUrl ? <Image src={accountUser.avatarUrl} alt="" fill sizes="36px" unoptimized className="object-cover" /> : <UserRound className="h-4 w-4" />}
               </Link>
             )}
@@ -1488,19 +1488,19 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
                 <circle cx="23" cy="15" r="9" fill="#F42A41" />
               </svg>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--text-main)" }}>
+                <h1 className="truncate text-base font-bold tracking-tight sm:text-xl" style={{ color: "var(--text-main)" }}>
                   {t("জনগণ", "Jonogon")}
                 </h1>
               </div>
-              <p className="text-[11px] font-medium" style={{ color: "var(--text-muted)" }}>
+              <p className="hidden text-[11px] font-medium sm:block" style={{ color: "var(--text-muted)" }}>
                 {t("স্বচ্ছ প্রশাসন ও নাগরিক অধিকার অবকাঠামো", "Digital Public Infrastructure for Transparent Governance")}
               </p>
             </div>
           </div>
 
-          <Link href="/" className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--primary-green)" }} aria-label={t("হোম পেজে যান", "Go to home page")} aria-current={activePage === "home" ? "page" : undefined}>
+          <Link href="/" className="col-span-2 row-start-2 inline-flex min-h-11 min-w-24 items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition hover:bg-black/5 active:scale-[0.98] dark:hover:bg-white/5 sm:col-span-1 sm:col-start-2 sm:row-start-1" style={{ color: "var(--primary-green)" }} aria-label={t("হোম পেজে যান", "Go to home page")} aria-current={activePage === "home" ? "page" : undefined}>
             <svg viewBox="0 0 40 40" className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true">
               <path d="M20 4c-5 6-6 12 0 18 6-6 5-12 0-18Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
               <path d="M9 11c0 7 3 11 11 13-1-7-4-11-11-13Zm22 0c-7 2-10 6-11 13 8-2 11-6 11-13Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
@@ -1508,10 +1508,10 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
               <circle cx="20" cy="23" r="2.1" fill="#f1c44f" />
               <path d="M7 34c4-2 8-2 13 0 5-2 9-2 13 0" fill="none" stroke="#15966f" strokeLinecap="round" strokeWidth="1.6" />
             </svg>
-            <span className="hidden sm:inline">{t("হোম", "Home")}</span>
+            <span>{t("হোম", "Home")}</span>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="col-start-2 row-start-1 flex items-center justify-self-end gap-1.5 sm:col-start-3 sm:gap-2">
             {accountUser ? (
               <Link href="/profile" className="max-w-44 truncate rounded-xl border px-3 py-2 text-xs font-semibold" style={{ borderColor: "var(--border-color)", color: "var(--text-main)", backgroundColor: "var(--surface)" }}>
                 {accountUser.nickname || accountUser.email}

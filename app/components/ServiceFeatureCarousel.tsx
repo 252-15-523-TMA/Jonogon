@@ -65,10 +65,10 @@ export default function ServiceFeatureCarousel({
   const viewportRef = useRef<HTMLDivElement>(null);
   const indexRef = useRef(items.length);
   const resetTimerRef = useRef<number | null>(null);
+  const hoverExitTimerRef = useRef<number | null>(null);
   const [activeIndex, setActiveIndex] = useState(items.length);
   const [viewportWidth, setViewportWidth] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+  const [isCardHovered, setIsCardHovered] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [animateTrack, setAnimateTrack] = useState(true);
 
@@ -91,6 +91,7 @@ export default function ServiceFeatureCarousel({
 
   useEffect(() => () => {
     if (resetTimerRef.current !== null) window.clearTimeout(resetTimerRef.current);
+    if (hoverExitTimerRef.current !== null) window.clearTimeout(hoverExitTimerRef.current);
   }, []);
 
   const moveBy = useCallback((direction: number) => {
@@ -113,11 +114,28 @@ export default function ServiceFeatureCarousel({
     }
   }, [items.length]);
 
+  const handleCardPointerEnter = useCallback(() => {
+    if (hoverExitTimerRef.current !== null) {
+      window.clearTimeout(hoverExitTimerRef.current);
+      hoverExitTimerRef.current = null;
+    }
+    setIsCardHovered(true);
+  }, []);
+
+  const handleCardPointerLeave = useCallback(() => {
+    if (hoverExitTimerRef.current !== null) window.clearTimeout(hoverExitTimerRef.current);
+    hoverExitTimerRef.current = window.setTimeout(() => {
+      setIsCardHovered(false);
+      moveBy(1);
+      hoverExitTimerRef.current = null;
+    }, 120);
+  }, [moveBy]);
+
   useEffect(() => {
-    if (items.length <= 1 || isHovered || isFocused || reducedMotion) return;
+    if (items.length <= 1 || isCardHovered || reducedMotion) return;
     const timer = window.setInterval(() => moveBy(1), 3_200);
     return () => window.clearInterval(timer);
-  }, [isFocused, isHovered, items.length, moveBy, reducedMotion]);
+  }, [isCardHovered, items.length, moveBy, reducedMotion]);
 
   const gap = viewportWidth > 700 ? 16 : 10;
   const visibleCount = viewportWidth > 700 ? 5 : 3;
@@ -129,19 +147,11 @@ export default function ServiceFeatureCarousel({
     : 0;
   const extendedItems = [...items, ...items, ...items];
 
-  const setFocusState = (focused: boolean) => setIsFocused(focused);
-
   return (
     <section
       className="mt-7 w-full max-w-5xl"
       aria-label={lang === "bn" ? "নাগরিক সেবা ও ফিচার ক্যারোসেল" : "Citizen services and features carousel"}
       aria-roledescription="carousel"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onFocusCapture={() => setFocusState(true)}
-      onBlurCapture={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocusState(false);
-      }}
     >
       <div className="mb-3 flex items-center justify-between gap-3 px-1 text-left">
         <div className="min-w-0">
@@ -213,6 +223,8 @@ export default function ServiceFeatureCarousel({
                 }}
                 aria-label={`${lang === "bn" ? "খুলুন" : "Open"}: ${title}`}
                 tabIndex={absoluteDistance <= (visibleCount === 5 ? 2 : 1) ? 0 : -1}
+                onPointerEnter={handleCardPointerEnter}
+                onPointerLeave={handleCardPointerLeave}
               >
                 <span
                   role="img"

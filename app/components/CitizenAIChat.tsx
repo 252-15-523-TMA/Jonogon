@@ -86,9 +86,8 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
-  const [voiceLanguage, setVoiceLanguage] = useState<Language>(lang);
-  const voiceInput = useCitizenVoiceInput(voiceLanguage, (transcript) => setDraft((current) => current.trim() ? `${current.trim()} ${transcript}` : transcript));
-  const { isRecording, isTranscribing, notice: voiceNotice, setNotice: setVoiceNotice, toggle: toggleVoice, stop: stopVoice, cancel: cancelVoice } = voiceInput;
+  const voiceInput = useCitizenVoiceInput(lang, (transcript) => setDraft((current) => current.trim() ? `${current.trim()} ${transcript}` : transcript));
+  const { isRecording, isTranscribing, notice: voiceNotice, setNotice: setVoiceNotice, toggle: toggleVoice, cancel: cancelVoice } = voiceInput;
   const pendingInitialPromptRef = useRef<string | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const langRef = useRef(lang);
@@ -275,13 +274,6 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     setHistoryNotice(translate(lang, "চ্যাট আপনার অ্যাকাউন্টে সংরক্ষিত হবে।", "Chats will now be saved to your account."));
   };
 
-  const toggleVoiceLanguage = () => {
-    if (isRecording) stopVoice();
-    const next = voiceLanguage === "bn" ? "en" : "bn";
-    setVoiceLanguage(next);
-    setVoiceNotice(next === "bn" ? translate(lang, "ভয়েস ইনপুটের ভাষা বাংলা করা হয়েছে।", "Voice input language set to Bangla.") : translate(lang, "ভয়েস ইনপুটের ভাষা ইংরেজি করা হয়েছে।", "Voice input language set to English."));
-  };
-
   const submitMessage = useCallback(async (event?: FormEvent<HTMLFormElement>, promptOverride?: string, startNewConversation = false) => {
     event?.preventDefault();
     const text = (promptOverride ?? draft).trim();
@@ -432,8 +424,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
               <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={onComposerKeyDown} rows={2} maxLength={6000} placeholder={translate(lang, "যেকোনো কিছু জিজ্ঞাসা করুন", "Ask anything")} aria-label={translate(lang, "আপনার বার্তা লিখুন", "Write your message")} className="max-h-36 min-h-12 w-full resize-y bg-transparent px-2 py-1.5 text-sm outline-none" style={{ color: "var(--text-main)" }} />
               <div className="flex items-center justify-between gap-2 px-1">
                 <div className="flex items-center gap-1.5">
-                  <button type="button" onClick={toggleVoiceLanguage} disabled={isRecording || isTranscribing} className="rounded-lg px-2 py-1.5 text-[10px] font-bold disabled:opacity-50" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }} aria-label={voiceLanguage === "bn" ? translate(lang, "ভয়েসের ভাষা বাংলা; ইংরেজিতে বদলান", "Voice language is Bangla; switch to English") : translate(lang, "ভয়েসের ভাষা ইংরেজি; বাংলায় বদলান", "Voice language is English; switch to Bangla")}>{voiceLanguage === "bn" ? "বাংলা" : "EN"}</button>
-                  <button type="button" onClick={() => { setError(""); void toggleVoice(); }} disabled={isTranscribing} className="min-h-11 min-w-11 touch-manipulation rounded-lg p-2 transition hover:bg-black/5 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-white/5" style={{ color: isRecording ? "var(--alert-red)" : "var(--text-muted)" }} aria-label={isTranscribing ? translate(lang, "কথা লিখে নেওয়া হচ্ছে", "Transcribing speech") : isRecording ? translate(lang, "শোনা বন্ধ করুন", "Stop listening") : voiceLanguage === "bn" ? translate(lang, "বাংলায় বলুন", "Speak in Bangla") : translate(lang, "ইংরেজিতে বলুন", "Speak in English")} aria-pressed={isRecording} aria-busy={isTranscribing} title={isTranscribing ? translate(lang, "কথা লিখে নেওয়া হচ্ছে", "Transcribing speech") : isRecording ? translate(lang, "শোনা বন্ধ করুন", "Stop listening") : translate(lang, "ভয়েস ইনপুট", "Voice input")}>{isTranscribing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</button>
+                  <button type="button" onClick={() => { setError(""); void toggleVoice(); }} disabled={isTranscribing} className="min-h-11 min-w-11 touch-manipulation rounded-lg p-2 transition hover:bg-black/5 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-white/5" style={{ color: isRecording ? "var(--alert-red)" : "var(--text-muted)" }} aria-label={isTranscribing ? translate(lang, "কথা লিখে নেওয়া হচ্ছে", "Transcribing speech") : isRecording ? translate(lang, "শোনা বন্ধ করুন", "Stop listening") : translate(lang, "বাংলা বা ইংরেজিতে বলুন", "Speak in Bangla or English")} aria-pressed={isRecording} aria-busy={isTranscribing} title={isTranscribing ? translate(lang, "কথা লিখে নেওয়া হচ্ছে", "Transcribing speech") : isRecording ? translate(lang, "শোনা বন্ধ করুন", "Stop listening") : translate(lang, "ভয়েস ইনপুট", "Voice input")}>{isTranscribing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</button>
                   {voiceNotice && <span role="status" className="max-w-[180px] truncate text-[10px]" style={{ color: "var(--text-muted)" }}>{voiceNotice}</span>}
                 </div>
                 <button type="submit" disabled={!draft.trim() || isSending} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: "var(--primary-green)" }} aria-label={translate(lang, "বার্তা পাঠান", "Send message")}><ArrowUp className="h-4 w-4" /></button>

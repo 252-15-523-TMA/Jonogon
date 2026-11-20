@@ -3059,20 +3059,10 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
             <span>•</span>
             <span className="font-medium">{t("আপনার নির্ভরযোগ্য সেবা স্টেশন", "Your go-to Service Station")}</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span>{t("সরকারি সহকারী এআই এখন সক্রিয়:", "Government's Right Hand AI is now")}</span>
-            <span
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold"
-              style={{
-                backgroundColor: "rgba(34, 197, 94, 0.12)",
-                color: darkMode ? "#4ade80" : "#15803d",
-                border: "1px solid rgba(34, 197, 94, 0.25)",
-              }}
-            >
-              <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ backgroundColor: darkMode ? "#4ade80" : "#16a34a" }} />
-              Active
-            </span>
-          </div>
+          <Link href="/docs" className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-semibold transition-colors hover:text-[var(--primary-green)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary-green)]">
+            <span>{t("প্রকল্প ও প্রযুক্তিগত নথি", "Project & technical brief")}</span>
+            <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" />
+          </Link>
         </div>
       </footer>
 

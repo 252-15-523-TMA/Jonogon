@@ -9,6 +9,8 @@ import {
   FileCheck,
   Calculator,
   Search,
+  History,
+  Settings2,
   MapPin,
   FileText,
   Sparkles,
@@ -53,7 +55,7 @@ import { TRANSPORT_ROUTES, TransportRoute } from "../transport-data";
 import BangladeshTransportMap from "./BangladeshTransportMap";
 import AccountPages from "./AccountPages";
 import OfficialServicePages, { type OfficialServicePage } from "./OfficialServicePages";
-import CitizenAIChat from "./CitizenAIChat";
+import CitizenAIChat, { CITIZEN_CHAT_PENDING_PROMPT_KEY } from "./CitizenAIChat";
 import PublicServiceSearch, { type PublicServiceSearchItem } from "./PublicServiceSearch";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
@@ -76,6 +78,7 @@ export type FeaturePage =
 
 export type JonogonPage =
   | "home"
+  | "chat"
   | FeaturePage
   | "govcopilot"
   | "login"
@@ -645,8 +648,12 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
   const [isSideMenuOpen, setIsSideMenuOpen] = useState(false);
   const [isFeatureMenuOpen, setIsFeatureMenuOpen] = useState(false);
   const [isPublicSearchOpen, setIsPublicSearchOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [citizenSearchDraft, setCitizenSearchDraft] = useState("");
+  const [greetingPeriod, setGreetingPeriod] = useState<"day" | "night">("day");
   const sideMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const sideMenuCloseButtonRef = useRef<HTMLButtonElement>(null);
+  const settingsMenuRef = useRef<HTMLDivElement>(null);
   const wasSideMenuOpenRef = useRef(false);
   const [selectedTransportRouteId, setSelectedTransportRouteId] = useState<string>("metro-line-6");
   const [transportFilterType, setTransportFilterType] = useState<"all" | "metro" | "train" | "bus" | "intercity-bus" | "launch">("all");
@@ -665,7 +672,25 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
       setActivePortal("citizen");
     }
     setIsSideMenuOpen(false);
+    setIsSettingsOpen(false);
     router.push(page === "home" ? "/" : `/${page}`);
+  };
+
+  const openCitizenChat = (prompt?: string) => {
+    if (prompt?.trim()) {
+      try { window.sessionStorage.setItem(CITIZEN_CHAT_PENDING_PROMPT_KEY, prompt.trim()); } catch { /* The chat page remains available if session storage is disabled. */ }
+    }
+    setIsSideMenuOpen(false);
+    setIsSettingsOpen(false);
+    router.push("/chat");
+  };
+
+  const submitCitizenSearch = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const prompt = citizenSearchDraft.trim();
+    if (!prompt) return;
+    setCitizenSearchDraft("");
+    openCitizenChat(prompt);
   };
 
   const navigateToCitizenDocuments = () => {
@@ -679,6 +704,32 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
     const storedLanguage = window.localStorage.getItem("jonogon-language");
     if (storedLanguage === "bn" || storedLanguage === "en") setLang(storedLanguage);
   }, []);
+
+  useEffect(() => {
+    const updateGreetingPeriod = () => {
+      const hour = new Date().getHours();
+      setGreetingPeriod(hour >= 18 || hour < 6 ? "night" : "day");
+    };
+    updateGreetingPeriod();
+    const interval = window.setInterval(updateGreetingPeriod, 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (!isSettingsOpen) return;
+    const closeOutside = (event: PointerEvent) => {
+      if (event.target instanceof Node && !settingsMenuRef.current?.contains(event.target)) setIsSettingsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsSettingsOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isSettingsOpen]);
 
   useEffect(() => {
     setActivePage(initialPage);
@@ -993,6 +1044,10 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
     TRANSPORT_ROUTES[0];
 
   const greetingName = accountUser?.nickname?.trim();
+  const citizenDisplayName = greetingName || t("নাগরিক", "Citizen");
+  const serviceGreeting = greetingPeriod === "night"
+    ? t(`আজ রাতে কীভাবে সহায়তা করতে পারি, ${citizenDisplayName}?`, `How can we assist you tonight, ${citizenDisplayName}?`)
+    : t(`আজ কীভাবে সহায়তা করতে পারি, ${citizenDisplayName}?`, `How can we assist you today, ${citizenDisplayName}?`);
   const publicSearchItems = useMemo(() => {
     const documentSearchItems = CITIZEN_SERVICES.flatMap((service) => {
       const sharedTerms = [service.titleBn, service.titleEn, service.descriptionBn, service.descriptionEn, ...service.actions.flatMap((action) => [action.labelBn, action.labelEn])].join(" ");
@@ -1331,6 +1386,20 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
           
           <div className="flex items-center space-x-3 sm:space-x-4">
             <div className="flex items-center gap-2.5">
+              <div className="relative" ref={settingsMenuRef}>
+                <button type="button" onClick={() => setIsSettingsOpen((open) => !open)} className="inline-flex items-center rounded-lg p-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--text-main)" }} aria-label={t("সেটিংস খুলুন", "Open settings")} title={t("সেটিংস", "Settings")} aria-haspopup="menu" aria-expanded={isSettingsOpen}>
+                  <Settings2 className="h-4 w-4" />
+                </button>
+                {isSettingsOpen && <div role="menu" aria-label={t("সেটিংস", "Settings")} className="absolute right-0 top-full z-40 mt-2 w-56 rounded-xl border p-1.5 shadow-xl" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)", color: "var(--text-main)" }}>
+                  <p className="px-2.5 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: "var(--text-subtle)" }}>{t("সেটিংস", "Settings")}</p>
+                  <button type="button" role="menuitem" onClick={() => openCitizenChat()} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5">
+                    <History className="h-4 w-4" style={{ color: "var(--primary-green)" }} />{t("চ্যাটের ইতিহাস", "Chat history")}
+                  </button>
+                  <button type="button" role="menuitem" onClick={() => navigateTo("profile")} className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5">
+                    <UserRound className="h-4 w-4" style={{ color: "var(--primary-green)" }} />{t("প্রোফাইল সম্পাদনা", "Edit profile")}
+                  </button>
+                </div>}
+              </div>
               <Link href="/notifications" className="relative inline-flex items-center rounded-lg p-1 transition-colors hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--text-main)" }} aria-label={t("নোটিফিকেশন খুলুন", "Open notifications")} title={t("নোটিফিকেশন", "Notifications")}>
                 <Bell className="h-4 w-4" />
                 {unreadNotificationCount > 0 && <span className="absolute -right-0.5 -top-0.5 min-w-3.5 rounded-full px-1 text-center text-[9px] font-bold leading-3.5 text-white" style={{ backgroundColor: "var(--alert-red)" }}>{unreadNotificationCount > 9 ? "9+" : unreadNotificationCount}</span>}
@@ -1453,32 +1522,39 @@ export default function JonogonApp({ initialPage = "home" }: { initialPage?: Jon
         ) : activePortal === "citizen" ? (
           <div>
             {isOfficialServicePage(activePage) && <OfficialServicePages page={activePage} lang={lang} />}
+            {activePage === "chat" && (
+              <section className="space-y-4" aria-label={t("নাগরিক সেবা চ্যাট", "Citizen service chat")}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <button type="button" onClick={() => navigateTo("home")} className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--text-muted)" }}>
+                    <ArrowRight className="h-3.5 w-3.5 rotate-180" />{t("হোমে ফিরুন", "Back to home")}
+                  </button>
+                  <span className="inline-flex items-center gap-2 text-[10px] font-semibold" style={{ color: "var(--text-muted)" }}><History className="h-3.5 w-3.5" style={{ color: "var(--primary-green)" }} />{t("সেটিংস থেকে চ্যাটের ইতিহাস খুলুন", "Open Chat history from Settings")}</span>
+                </div>
+                <CitizenAIChat lang={lang} nickname={greetingName} />
+              </section>
+            )}
             {activePage === "home" && (
               <>
                 <section className="relative overflow-hidden rounded-3xl border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }} aria-labelledby="citizen-guide-heading">
                   <div className="h-1.5 bg-gradient-to-r from-[#006A4E] via-[#006A4E] to-[#D14949]" />
-                  <div className="p-4 sm:p-6 lg:p-7">
-                    <div className="mb-5 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
-                      <div className="max-w-3xl">
-                        <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--primary-green)" }}>
-                          <Sparkles className="h-3 w-3" />{t("নাগরিক সেবা সহায়তা", "CITIZEN SERVICE DESK")}
-                        </span>
-                        <h1 id="citizen-guide-heading" className="text-xl font-extrabold tracking-tight sm:text-2xl" style={{ color: "var(--text-main)" }}>
-                          {t("সরকারি সেবা বুঝুন, পরের ধাপ জানুন", "Understand public services. Know your next step.")}
-                        </h1>
-                        <p className="mt-1.5 max-w-2xl text-xs leading-5 sm:text-sm" style={{ color: "var(--text-muted)" }}>
-                          {t("বাংলা বা ইংরেজিতে প্রশ্ন করুন—আবেদন, প্রয়োজনীয় নথি ও সঠিক সরকারি উৎস খুঁজতে সহায়তা নিন।", "Ask in Bangla or English for help with applications, required documents, and finding the right official source.")}
-                        </p>
+                  <div className="mx-auto flex min-h-[320px] max-w-4xl flex-col items-center justify-center px-4 py-12 text-center sm:min-h-[380px] sm:px-8 sm:py-16">
+                    <span className="mb-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.12em]" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--primary-green)" }}>
+                      <Sparkles className="h-3 w-3" />{t("নাগরিক সেবা সহায়তা", "CITIZEN SERVICE DESK")}
+                    </span>
+                    <h1 id="citizen-guide-heading" className="text-2xl font-extrabold tracking-tight sm:text-3xl" style={{ color: "var(--text-main)" }}>{serviceGreeting}</h1>
+                    <p className="mt-2 max-w-2xl text-xs leading-5 sm:text-sm" style={{ color: "var(--text-muted)" }}>
+                      {t("বাংলা বা ইংরেজিতে আপনার প্রশ্ন লিখুন—সরকারি সেবার পরবর্তী ধাপ খুঁজে নিন।", "Type your question in Bangla or English to get help with your next step in a public service.")}
+                    </p>
+                    <form onSubmit={submitCitizenSearch} className="mt-6 w-full max-w-3xl">
+                      <div className="flex min-h-14 items-center gap-3 rounded-2xl border px-3 py-2 shadow-sm transition focus-within:border-[#006A4E] focus-within:ring-2 focus-within:ring-[#006A4E]/15 sm:min-h-16 sm:px-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)" }}>
+                        <Search className="h-5 w-5 shrink-0" style={{ color: "var(--primary-green)" }} />
+                        <input type="text" value={citizenSearchDraft} onChange={(event) => setCitizenSearchDraft(event.target.value)} maxLength={6000} autoComplete="off" aria-label={t("আপনার প্রশ্ন লিখুন", "Ask anything")} placeholder={t("যেকোনো কিছু জিজ্ঞাসা করুন", "Ask anything")} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none sm:text-base" style={{ color: "var(--text-main)" }} />
+                        <button type="submit" disabled={!citizenSearchDraft.trim()} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: "var(--primary-green)" }} aria-label={t("চ্যাট শুরু করুন", "Start chat")} title={t("চ্যাট শুরু করুন", "Start chat")}>
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
                       </div>
-                      <div className="grid grid-cols-3 gap-2 lg:min-w-[330px]">
-                        {[
-                          ["01", t("জিজ্ঞাসা", "Ask")],
-                          ["02", t("নির্দেশনা দেখুন", "Review guidance")],
-                          ["03", t("সরকারি উৎস যাচাই", "Check official source")],
-                        ].map(([number, label]) => <div key={number} className="rounded-xl border px-2.5 py-2" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}><span className="block text-[9px] font-extrabold tracking-wider" style={{ color: "var(--primary-green)" }}>{number}</span><span className="mt-0.5 block text-[10px] font-semibold leading-4" style={{ color: "var(--text-main)" }}>{label}</span></div>)}
-                      </div>
-                    </div>
-                    <CitizenAIChat lang={lang} nickname={greetingName} />
+                    </form>
+                    <p className="mt-3 text-[10px]" style={{ color: "var(--text-subtle)" }}>{t("ব্যক্তিগত পরিচয়পত্র নম্বর, OTP বা পাসওয়ার্ড লিখবেন না।", "Do not enter personal ID numbers, OTPs, or passwords.")}</p>
                   </div>
                 </section>
               </>

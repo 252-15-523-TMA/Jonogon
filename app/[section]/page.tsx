@@ -16,6 +16,7 @@ const publicPages = new Set<JonogonPage>([
   "govcopilot",
   "login",
   "signup",
+  "chat",
   "profile",
   "feedback",
   "notifications",

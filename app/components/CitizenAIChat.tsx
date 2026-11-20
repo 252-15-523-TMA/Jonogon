@@ -29,6 +29,7 @@ type SpeechRecognitionWindow = Window & {
 
 const HISTORY_KEY = "jonogon-citizen-chat-v1";
 const ACCOUNT_SAVE_KEY = "jonogon-citizen-chat-account-save-v1";
+export const CITIZEN_CHAT_PENDING_PROMPT_KEY = "jonogon-citizen-chat-pending-prompt-v1";
 const MAX_SAVED_CONVERSATIONS = 40;
 const translate = (lang: Language, bn: string, en: string) => lang === "bn" ? bn : en;
 
@@ -104,6 +105,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
   const [isRecording, setIsRecording] = useState(false);
   const [voiceLanguage, setVoiceLanguage] = useState<Language>(lang);
   const [voiceNotice, setVoiceNotice] = useState("");
+  const pendingInitialPromptRef = useRef<string | null>(null);
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const langRef = useRef(lang);
@@ -114,6 +116,16 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
   useEffect(() => {
     langRef.current = lang;
   }, [lang]);
+
+  useEffect(() => {
+    try {
+      const prompt = window.sessionStorage.getItem(CITIZEN_CHAT_PENDING_PROMPT_KEY)?.trim();
+      if (prompt) pendingInitialPromptRef.current = prompt;
+      window.sessionStorage.removeItem(CITIZEN_CHAT_PENDING_PROMPT_KEY);
+    } catch {
+      pendingInitialPromptRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -349,11 +361,11 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     setVoiceNotice(next === "bn" ? translate(lang, "ভয়েস ইনপুটের ভাষা বাংলা করা হয়েছে।", "Voice input language set to Bangla.") : translate(lang, "ভয়েস ইনপুটের ভাষা ইংরেজি করা হয়েছে।", "Voice input language set to English."));
   };
 
-  const submitMessage = async (event?: FormEvent<HTMLFormElement>) => {
+  const submitMessage = async (event?: FormEvent<HTMLFormElement>, promptOverride?: string, startNewConversation = false) => {
     event?.preventDefault();
-    const text = draft.trim();
+    const text = (promptOverride ?? draft).trim();
     if (!text || isSending) return;
-    const conversationId = activeConversationId || newId();
+    const conversationId = startNewConversation ? newId() : activeConversationId || newId();
     const previous = conversations.find((item) => item.id === conversationId);
     const userMessage: Message = { id: newId(), role: "user", text, createdAt: Date.now() };
     const nextMessages = [...(previous?.messages || []), userMessage];
@@ -393,6 +405,13 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     }
   };
 
+  useEffect(() => {
+    if (!hasLoadedHistory || !accountReady || !pendingInitialPromptRef.current) return;
+    const initialPrompt = pendingInitialPromptRef.current;
+    pendingInitialPromptRef.current = null;
+    void submitMessage(undefined, initialPrompt, true);
+  }, [hasLoadedHistory, accountReady, submitMessage]);
+
   const onComposerKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
       event.preventDefault();
@@ -405,9 +424,9 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     : ["How do I apply for birth registration?", "How can I replace a lost NID?", "Where can I complain about a public service?"];
 
   return (
-    <section className="mx-auto max-w-6xl text-left" aria-label={translate(lang, "নাগরিক সেবা সহায়তা", "Citizen service guide")}>
-      <div className="grid gap-4 lg:grid-cols-[245px_minmax(0,1fr)]">
-        <aside className="flex min-h-[320px] flex-col overflow-hidden rounded-2xl border text-left" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
+    <section className="mx-auto max-w-7xl text-left" aria-label={translate(lang, "নাগরিক সেবা সহায়তা", "Citizen service guide")}>
+      <div className="grid gap-4 lg:min-h-[calc(100vh-220px)] lg:grid-cols-[245px_minmax(0,1fr)]">
+        <aside className="flex max-h-[360px] min-h-[240px] flex-col overflow-hidden rounded-2xl border text-left lg:max-h-none lg:min-h-[calc(100vh-220px)]" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
           <div className="h-1.5 bg-gradient-to-r from-[#006A4E] via-[#006A4E] to-[#D14949]" />
           <div className="flex items-start justify-between gap-2 px-4 pb-3 pt-4">
             <div>
@@ -429,7 +448,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
               </div>
               <button type="button" onClick={() => void toggleAccountSaving()} disabled={!accountReady || isSyncing} aria-pressed={saveToAccount} className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition disabled:cursor-wait disabled:opacity-50 ${saveToAccount ? "bg-[#006A4E]" : "bg-slate-300 dark:bg-slate-600"}`} aria-label={saveToAccount ? translate(lang, "অ্যাকাউন্টে সংরক্ষণ বন্ধ করুন", "Turn off account saving") : translate(lang, "অ্যাকাউন্টে সংরক্ষণ চালু করুন", "Turn on account saving")}><span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition ${saveToAccount ? "left-[18px]" : "left-0.5"}`} /></button>
             </div>
-            {!account && accountReady && <Link href="/login?next=%2F" className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2" style={{ color: "var(--primary-green)" }}>{translate(lang, "লগইন করে অ্যাকাউন্টে রাখুন", "Sign in to save to your account")}</Link>}
+            {!account && accountReady && <Link href="/login?next=%2Fchat" className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold underline underline-offset-2" style={{ color: "var(--primary-green)" }}>{translate(lang, "লগইন করে অ্যাকাউন্টে রাখুন", "Sign in to save to your account")}</Link>}
             {account && <p className="mt-2 truncate text-[10px]" style={{ color: "var(--text-subtle)" }}>{account.email || translate(lang, "আপনার Jonogon অ্যাকাউন্ট", "Your Jonogon account")}</p>}
             {historyNotice && <p role="status" className="mt-2 text-[10px] leading-4" style={{ color: "var(--text-muted)" }}>{isSyncing ? translate(lang, "সংরক্ষণ হচ্ছে…", "Saving…") : historyNotice}</p>}
           </div>
@@ -445,7 +464,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
           <div className="flex items-center gap-2 border-t px-4 py-3 text-[10px]" style={{ borderColor: "var(--border-color)", color: "var(--text-muted)" }}><ShieldCheck className="h-3.5 w-3.5" style={{ color: "var(--primary-green)" }} />{translate(lang, "নিরাপদ ব্যবহার • তথ্য যাচাই করুন", "Use safely • verify official details")}</div>
         </aside>
 
-        <div className="min-w-0 overflow-hidden rounded-2xl border shadow-sm" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)" }}>
+        <div className="flex min-h-[560px] min-w-0 flex-col overflow-hidden rounded-2xl border shadow-sm lg:min-h-[calc(100vh-220px)]" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)" }}>
           <header className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-5" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--background)" }}>
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-xl text-white shadow-sm" style={{ backgroundColor: "var(--primary-green)" }}><Landmark className="h-5 w-5" /></span>
@@ -457,7 +476,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
             <div className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold" style={{ borderColor: "var(--border-color)", color: "var(--text-muted)", backgroundColor: "var(--surface)" }}><span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "var(--primary-green)" }} />{translate(lang, "বাংলা ও ইংরেজি", "Bangla & English")}</div>
           </header>
 
-          <div ref={transcriptRef} className="h-[300px] space-y-3 overflow-y-auto px-4 py-4 sm:h-[340px] sm:px-5" aria-live="polite" aria-relevant="additions text">
+          <div ref={transcriptRef} className="min-h-[300px] flex-1 space-y-3 overflow-y-auto px-4 py-4 sm:px-5" aria-live="polite" aria-relevant="additions text">
             {activeConversation?.messages.length ? activeConversation.messages.map((message) => (
               <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[92%] rounded-2xl px-3.5 py-2.5 text-sm leading-6 ${message.role === "user" ? "rounded-br-md text-white" : "rounded-bl-md border"}`} style={message.role === "user" ? { backgroundColor: "var(--primary-green)" } : { borderColor: "var(--border-color)", backgroundColor: "var(--background)", color: "var(--text-main)" }}>

@@ -1,4 +1,10 @@
-import { GEMINI_MODEL, getGeminiFailure, getGeminiText } from "@/lib/gemini-api";
+import {
+  CLOUDFLARE_TRANSCRIPTION_MODEL,
+  getCloudflareCredentials,
+  getCloudflareFailure,
+  getCloudflareTranscriptionText,
+  type CloudflareResponse,
+} from "@/lib/cloudflare-ai";
 
 const rateWindowMs = 10 * 60_000;
 const requestsPerWindow = 12;
@@ -39,8 +45,9 @@ function consumeRateLimit(request: Request) {
 export async function POST(request: Request) {
   if (!isAllowedOrigin(request)) return json({ code: "invalid_origin" }, 403);
   if (Number(request.headers.get("content-length") || 0) > maxAudioBytes + 100_000) return json({ code: "audio_too_large" }, 413);
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return json({ code: "not_configured" }, 503);
+
+  const credentials = getCloudflareCredentials();
+  if (!credentials) return json({ code: "not_configured" }, 503);
   if (!consumeRateLimit(request)) return json({ code: "rate_limited" }, 429, { "Retry-After": "600" });
 
   let form: FormData;
@@ -63,35 +70,26 @@ export async function POST(request: Request) {
   if (!supportedMimeTypes.has(mimeType)) return json({ code: "unsupported_audio" }, 415);
 
   try {
-    const base64Audio = Buffer.from(await upload.arrayBuffer()).toString("base64");
-    const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+    const upstream = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/ai/run/${CLOUDFLARE_TRANSCRIPTION_MODEL}`, {
       method: "POST",
-      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{
-          role: "user",
-          parts: [
-            { text: "Transcribe the spoken audio exactly in its original language and writing system. It may be Bangla, English, or a mixture. Return only the words spoken, with no labels, translation, explanation, or quotation marks." },
-            { inlineData: { mimeType, data: base64Audio } },
-          ],
-        }],
-        generationConfig: { maxOutputTokens: 512, temperature: 0.1 },
-      }),
+      headers: { Authorization: `Bearer ${credentials.apiToken}`, "Content-Type": mimeType },
+      body: await upload.arrayBuffer(),
       signal: AbortSignal.timeout(50_000),
       cache: "no-store",
     });
 
-    const result = await upstream.json().catch(() => ({})) as Parameters<typeof getGeminiText>[0];
+    const result = await upstream.json().catch(() => ({})) as CloudflareResponse;
     if (!upstream.ok) {
-      const failure = getGeminiFailure(upstream.status, result, upstream.headers.get("retry-after"));
-      console.warn("[citizen-transcribe] Gemini request failed", {
+      const failure = getCloudflareFailure(upstream.status, result, upstream.headers.get("retry-after"));
+      console.warn("[citizen-transcribe] Cloudflare Workers AI request failed", {
         status: upstream.status,
-        code: typeof result.error?.status === "string" ? result.error.status : undefined,
-        model: GEMINI_MODEL,
+        code: result.errors?.[0]?.code,
+        model: CLOUDFLARE_TRANSCRIPTION_MODEL,
       });
       return json({ code: failure.code }, failure.status, failure.retryAfter ? { "Retry-After": failure.retryAfter } : {});
     }
-    const text = getGeminiText(result);
+
+    const text = getCloudflareTranscriptionText(result);
     if (!text) return json({ code: "empty_transcription" }, 422);
     return json({ text });
   } catch {

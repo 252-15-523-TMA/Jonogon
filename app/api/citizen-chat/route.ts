@@ -1,4 +1,10 @@
-import { GEMINI_MODEL, getGeminiFailure, getGeminiText } from "@/lib/gemini-api";
+import {
+  CLOUDFLARE_CHAT_MODEL,
+  getCloudflareChatText,
+  getCloudflareCredentials,
+  getCloudflareFailure,
+  type CloudflareResponse,
+} from "@/lib/cloudflare-ai";
 
 const CHAT_INSTRUCTIONS = `You are Jonogon, a bilingual citizen-service assistant for Bangladesh.
 
@@ -43,8 +49,8 @@ function consumeRateLimit(request: Request) {
 export async function POST(request: Request) {
   if (!isAllowedOrigin(request)) return json({ code: "invalid_origin" }, 403);
   if (Number(request.headers.get("content-length") || 0) > 40_000) return json({ code: "request_too_large" }, 413);
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return json({ code: "not_configured" }, 503);
+  const credentials = getCloudflareCredentials();
+  if (!credentials) return json({ code: "not_configured" }, 503);
   if (!consumeRateLimit(request)) return json({ code: "rate_limited" }, 429, { "Retry-After": "60" });
 
   let body: unknown;
@@ -58,7 +64,7 @@ export async function POST(request: Request) {
   if (!Array.isArray(rawMessages) || rawMessages.length < 1 || rawMessages.length > 16) {
     return json({ code: "invalid_messages" }, 400);
   }
-  const messages: { role: "user" | "model"; content: string }[] = [];
+  const messages: { role: "user" | "assistant"; content: string }[] = [];
   let totalCharacters = 0;
   for (const item of rawMessages) {
     if (!item || typeof item !== "object") return json({ code: "invalid_messages" }, 400);
@@ -67,40 +73,41 @@ export async function POST(request: Request) {
       return json({ code: "invalid_messages" }, 400);
     }
     totalCharacters += content.length;
-    const geminiRole = role === "assistant" ? "model" : "user";
+    const chatRole = role;
     const prior = messages[messages.length - 1];
-    if (prior?.role === geminiRole) prior.content += `\n\n${content.trim()}`;
-    else messages.push({ role: geminiRole, content: content.trim() });
+    if (prior?.role === chatRole) prior.content += `\n\n${content.trim()}`;
+    else messages.push({ role: chatRole, content: content.trim() });
   }
   if (messages[messages.length - 1]?.role !== "user" || totalCharacters > 24_000) {
     return json({ code: "invalid_messages" }, 400);
   }
 
   try {
-    const upstream = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+    const upstream = await fetch(`https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(credentials.accountId)}/ai/v1/chat/completions`, {
       method: "POST",
-      headers: { "x-goog-api-key": apiKey, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${credentials.apiToken}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: CHAT_INSTRUCTIONS }] },
-        contents: messages.map(({ role, content }) => ({ role, parts: [{ text: content }] })),
-        generationConfig: { maxOutputTokens: 800, temperature: 0.4 },
+        model: CLOUDFLARE_CHAT_MODEL,
+        messages: [{ role: "system", content: CHAT_INSTRUCTIONS }, ...messages],
+        max_tokens: 800,
+        temperature: 0.4,
+        options: { rejectIfBusy: true },
       }),
       signal: AbortSignal.timeout(30_000),
       cache: "no-store",
     });
 
-    const result = await upstream.json().catch(() => ({})) as Parameters<typeof getGeminiText>[0];
+    const result = await upstream.json().catch(() => ({})) as CloudflareResponse;
     if (!upstream.ok) {
-      const failure = getGeminiFailure(upstream.status, result, upstream.headers.get("retry-after"));
-      console.warn("[citizen-chat] Gemini request failed", {
+      const failure = getCloudflareFailure(upstream.status, result, upstream.headers.get("retry-after"));
+      console.warn("[citizen-chat] Cloudflare Workers AI request failed", {
         status: upstream.status,
-        code: typeof result.error?.status === "string" ? result.error.status : undefined,
-        model: GEMINI_MODEL,
+        code: result.errors?.[0]?.code,
+        model: CLOUDFLARE_CHAT_MODEL,
       });
       return json({ code: failure.code }, failure.status, failure.retryAfter ? { "Retry-After": failure.retryAfter } : {});
     }
-    if (result.promptFeedback?.blockReason) return json({ code: "safety_blocked" }, 422);
-    const text = getGeminiText(result);
+    const text = getCloudflareChatText(result);
     if (!text) return json({ code: "empty_response" }, 502);
     return json({ text });
   } catch {

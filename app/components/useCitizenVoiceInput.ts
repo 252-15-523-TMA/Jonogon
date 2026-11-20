@@ -142,11 +142,10 @@ export function useCitizenVoiceInput(language: Language, onTranscript: (text: st
       const response = await fetch("/api/citizen-transcribe", { method: "POST", body: formData, cache: "no-store" });
       const payload = await response.json().catch(() => ({})) as { text?: string; code?: string };
       if (!response.ok || !payload.text?.trim()) {
-        if (payload.code === "provider_billing_inactive") throw new Error(message(languageRef.current, "সাইটের OpenAI API বিলিং চালু নেই। এটি Jonogon লগইনের সমস্যা নয়।", "The site's OpenAI API billing is inactive. This is separate from your Jonogon login."));
-        if (payload.code === "provider_key_invalid") throw new Error(message(languageRef.current, "সাইটের OpenAI API key আর বৈধ নয়। সাইট মালিককে key পরীক্ষা করতে হবে।", "The site's OpenAI API key is invalid. The site owner needs to check the key."));
-        if (payload.code === "provider_quota_exceeded") throw new Error(message(languageRef.current, "OpenAI API-এর ব্যবহারসীমা শেষ হয়েছে। সাইট মালিককে বিলিং পরীক্ষা করতে হবে।", "The OpenAI API usage limit has been reached. The site owner needs to check billing."));
+        if (payload.code === "provider_key_invalid") throw new Error(message(languageRef.current, "Gemini key বা AI Studio project অনুমোদিত নয়। সাইট মালিককে সেটিং পরীক্ষা করতে হবে।", "The Gemini key or AI Studio project is not authorized. The site owner needs to check its setup."));
+        if (payload.code === "free_quota_exceeded") throw new Error(message(languageRef.current, "Gemini-এর বিনামূল্যের দৈনিক সীমা পূর্ণ হয়েছে। রাত ১২টায় Pacific সময়ে আবার চেষ্টা করুন।", "The Gemini free daily quota has been reached. Please try again after midnight Pacific time."));
         if (payload.code === "rate_limited" || payload.code === "provider_rate_limited") throw new Error(message(languageRef.current, "অনেক অনুরোধ এসেছে। একটু পরে আবার চেষ্টা করুন।", "Too many requests. Please try again shortly."));
-        if (payload.code === "not_configured") throw new Error(message(languageRef.current, "ভয়েস ইনপুটের OpenAI সেবা এখনো সেট করা হয়নি।", "Voice input is not configured yet."));
+        if (payload.code === "not_configured") throw new Error(message(languageRef.current, "বিনামূল্যের Gemini সেবা এখনো সেট করা হয়নি।", "The free Gemini service is not configured yet."));
         if (payload.code === "unsupported_audio") throw new Error(message(languageRef.current, "এই রেকর্ডিং ফরম্যাট সমর্থিত নয়। আবার রেকর্ড করুন।", "This recording format is not supported. Please record again."));
         if (payload.code === "audio_too_large") throw new Error(message(languageRef.current, "রেকর্ডিংটি অনেক বড়। ৪৫ সেকেন্ডের মধ্যে বলুন।", "The recording is too large. Please keep it under 45 seconds."));
         throw new Error(message(languageRef.current, "কথা বোঝা যায়নি। একটু পরে আবার চেষ্টা করুন।", "Could not transcribe the audio. Please try again."));

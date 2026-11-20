@@ -306,13 +306,13 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
       });
       const payload = await response.json().catch(() => ({})) as { text?: string; code?: string };
       if (!response.ok || !payload.text) {
-        if (payload.code === "not_configured") throw new Error(translate(lang, "AI চ্যাট চালু করতে সাইট মালিককে OpenAI API key ও model যোগ করতে হবে।", "AI chat is not connected yet. The site owner must configure an OpenAI API key and model."));
+        if (payload.code === "not_configured") throw new Error(translate(lang, "বিনামূল্যের Gemini AI key এখনো সাইটে সেট করা হয়নি। সাইট মালিককে AI Studio থেকে key তৈরি করে নিরাপদে যোগ করতে হবে।", "The free Gemini AI key is not connected yet. The site owner needs to create a key in AI Studio and add it securely."));
         if (payload.code === "rate_limited") throw new Error(translate(lang, "এই নেটওয়ার্ক থেকে অনেক বার্তা পাঠানো হয়েছে। এক মিনিট পরে আবার চেষ্টা করুন।", "Too many messages came from this network. Please wait about a minute and try again."));
-        if (payload.code === "provider_billing_inactive") throw new Error(translate(lang, "সাইটের OpenAI API বিলিং চালু নেই। এটি Jonogon লগইনের সমস্যা নয়; সাইট মালিককে OpenAI Platform-এ API বিলিং চালু করতে হবে।", "The site's OpenAI API billing is inactive. This is separate from your Jonogon login; the site owner must activate API billing in OpenAI Platform."));
-        if (payload.code === "provider_key_invalid") throw new Error(translate(lang, "সাইটের OpenAI API key আর বৈধ নয়। সাইট মালিককে key পরীক্ষা করতে হবে।", "The site's OpenAI API key is invalid. The site owner needs to check the key."));
-        if (payload.code === "provider_quota_exceeded") throw new Error(translate(lang, "OpenAI API-এর ব্যবহারসীমা শেষ হয়েছে। সাইট মালিককে বিলিং ও usage limit পরীক্ষা করতে হবে।", "The OpenAI API usage limit has been reached. The site owner needs to check billing and usage limits."));
-        if (payload.code === "provider_rate_limited") throw new Error(translate(lang, "AI সেবা ব্যস্ত আছে। একটু পরে আবার চেষ্টা করুন।", "The AI service is busy. Please wait a moment and try again."));
+        if (payload.code === "provider_key_invalid") throw new Error(translate(lang, "Gemini key বা Google AI Studio project অনুমোদিত নয়। সাইট মালিককে key ও free-tier access পরীক্ষা করতে হবে।", "The Gemini key or Google AI Studio project is not authorized. The site owner needs to check the key and free-tier access."));
+        if (payload.code === "free_quota_exceeded") throw new Error(translate(lang, "Gemini-এর বিনামূল্যের দৈনিক সীমা পূর্ণ হয়েছে। এটি সাধারণত রাত ১২টায় Pacific সময়ে আবার চালু হয়; পরে চেষ্টা করুন।", "The Gemini free daily quota has been reached. It resets at midnight Pacific time; please try again later."));
+        if (payload.code === "provider_rate_limited") throw new Error(translate(lang, "Gemini-তে অল্প সময়ে অনেক অনুরোধ গেছে। একটু অপেক্ষা করে আবার চেষ্টা করুন।", "Gemini received too many requests in a short time. Please wait a moment and try again."));
         if (payload.code === "provider_unavailable") throw new Error(translate(lang, "AI সেবা এখন অনুপলব্ধ। একটু পরে আবার চেষ্টা করুন।", "The AI service is currently unavailable. Please try again shortly."));
+        if (payload.code === "safety_blocked") throw new Error(translate(lang, "এই অনুরোধে উত্তর তৈরি করা যায়নি। অন্যভাবে জিজ্ঞাসা করুন।", "The assistant could not answer that request. Please rephrase it."));
         if (response.status === 429) throw new Error(translate(lang, "অনেক অনুরোধ এসেছে। একটু পরে আবার চেষ্টা করুন।", "Too many requests. Please try again shortly."));
         throw new Error(translate(lang, "উত্তর পাওয়া যায়নি। আবার চেষ্টা করুন।", "No answer was received. Please try again."));
       }
@@ -439,7 +439,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
               </div>
             </form>
             {error && <p role="alert" className="mt-2 text-xs leading-5 text-red-700">{error}</p>}
-            <p className="mt-2 text-center text-[10px] leading-4" style={{ color: "var(--text-muted)" }}>{translate(lang, "উত্তর OpenAI API থেকে আসে। ব্যক্তিগত NID/পাসপোর্ট নম্বর, OTP বা পাসওয়ার্ড লিখবেন না।", "Replies use the OpenAI API. Do not enter personal ID/passport numbers, OTPs, or passwords.")}</p>
+            <p className="mt-2 text-center text-[10px] leading-4" style={{ color: "var(--text-muted)" }}>{translate(lang, "Gemini-এর বিনামূল্যের সেবা ব্যবহার করা হয়; Google এই সেবার prompt পণ্য উন্নত করতে ব্যবহার করতে পারে। ব্যক্তিগত NID/পাসপোর্ট নম্বর, OTP বা পাসওয়ার্ড লিখবেন না।", "Replies use Gemini's free tier; Google may use free-tier prompts to improve its products. Do not enter personal ID/passport numbers, OTPs, or passwords.")}</p>
           </div>
         </div>
       </div>

@@ -4,28 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type
 import Link from "next/link";
 import { ArrowUp, BookOpenText, Cloud, CloudCheck, Landmark, LoaderCircle, MessageSquare, Mic, MicOff, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
+import { useCitizenVoiceInput } from "./useCitizenVoiceInput";
 
 type Language = "bn" | "en";
 type Message = { id: string; role: "user" | "assistant"; text: string; createdAt: number };
 type Conversation = { id: string; title: string; messages: Message[]; updatedAt: number };
 type Account = { id: string; email: string };
-type SpeechResult = { length: number; [index: number]: { transcript: string } };
-type SpeechEventLike = { resultIndex: number; results: ArrayLike<SpeechResult> };
-type SpeechRecognitionLike = {
-  lang: string;
-  continuous: boolean;
-  interimResults: boolean;
-  suppressEmptyEnd?: boolean;
-  onresult: ((event: SpeechEventLike) => void) | null;
-  onerror: ((event: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-};
-type SpeechRecognitionWindow = Window & {
-  SpeechRecognition?: new () => SpeechRecognitionLike;
-  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
-};
 
 const HISTORY_KEY = "jonogon-citizen-chat-v1";
 const ACCOUNT_SAVE_KEY = "jonogon-citizen-chat-account-save-v1";
@@ -102,11 +86,10 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
   const [voiceLanguage, setVoiceLanguage] = useState<Language>(lang);
-  const [voiceNotice, setVoiceNotice] = useState("");
+  const voiceInput = useCitizenVoiceInput(voiceLanguage, (transcript) => setDraft((current) => current.trim() ? `${current.trim()} ${transcript}` : transcript));
+  const { isRecording, isTranscribing, notice: voiceNotice, setNotice: setVoiceNotice, toggle: toggleVoice, stop: stopVoice, cancel: cancelVoice } = voiceInput;
   const pendingInitialPromptRef = useRef<string | null>(null);
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const transcriptRef = useRef<HTMLDivElement>(null);
   const langRef = useRef(lang);
   const supabaseRef = useRef<ReturnType<typeof createClient> | null>(null);
@@ -221,7 +204,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     transcriptRef.current?.scrollTo({ top: transcriptRef.current.scrollHeight, behavior: "smooth" });
   }, [activeConversation?.messages.length, isSending]);
 
-  useEffect(() => () => recognitionRef.current?.stop(), []);
+  useEffect(() => () => cancelVoice(), [cancelVoice]);
 
   const startNewChat = () => {
     if (isSending) return;
@@ -292,70 +275,8 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     setHistoryNotice(translate(lang, "চ্যাট আপনার অ্যাকাউন্টে সংরক্ষিত হবে।", "Chats will now be saved to your account."));
   };
 
-  const toggleVoice = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.suppressEmptyEnd = true;
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-      setIsRecording(false);
-      return;
-    }
-    const SpeechRecognition = (window as SpeechRecognitionWindow).SpeechRecognition ?? (window as SpeechRecognitionWindow).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setVoiceNotice(translate(lang, "এই ব্রাউজারে ভয়েস ইনপুট সমর্থিত নয়। Chrome বা Edge-এ চেষ্টা করুন।", "Voice input is not supported in this browser. Try Chrome or Edge."));
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.lang = voiceLanguage === "bn" ? "bn-BD" : "en-US";
-    recognition.continuous = false;
-    recognition.interimResults = true;
-    let heardSpeech = false;
-    recognition.onresult = (event) => {
-      let transcript = "";
-      for (let index = event.resultIndex; index < event.results.length; index += 1) transcript += event.results[index][0].transcript;
-      transcript = transcript.trim();
-      if (transcript) {
-        heardSpeech = true;
-        setDraft(transcript);
-        setVoiceNotice(transcript);
-      }
-    };
-    recognition.onerror = (event) => {
-      const messages: Record<string, [string, string]> = {
-        "not-allowed": ["মাইক্রোফোন ব্যবহারের অনুমতি দিন, তারপর আবার চেষ্টা করুন।", "Allow microphone access, then try again."],
-        "service-not-allowed": ["ব্রাউজারের স্পিচ সার্ভিস ব্যবহার করা যাচ্ছে না।", "The browser speech service is unavailable."],
-        "audio-capture": ["কোনো মাইক্রোফোন পাওয়া যায়নি।", "No microphone was found."],
-        "no-speech": ["কোনো কথা শোনা যায়নি। আবার বলুন।", "No speech was detected. Please try again."],
-        network: ["স্পিচ সার্ভিসে সংযোগ করা যায়নি।", "Could not connect to the speech service."],
-      };
-      const message = messages[event.error];
-      if (event.error !== "aborted") setVoiceNotice(message ? translate(lang, message[0], message[1]) : translate(lang, "ভয়েস ইনপুটে সমস্যা হয়েছে। আবার চেষ্টা করুন।", "Voice input failed. Please try again."));
-    };
-    recognition.onend = () => {
-      if (recognitionRef.current === recognition) recognitionRef.current = null;
-      setIsRecording(false);
-      if (!heardSpeech && !recognition.suppressEmptyEnd) setVoiceNotice((current) => current || translate(lang, "কোনো কথা ধরা যায়নি। আবার চেষ্টা করুন।", "No speech was detected. Please try again."));
-    };
-    try {
-      setError("");
-      setVoiceNotice(translate(lang, "শুনছি... কথা বলুন...", "Listening... speak now..."));
-      recognitionRef.current = recognition;
-      setIsRecording(true);
-      recognition.start();
-    } catch {
-      recognitionRef.current = null;
-      setIsRecording(false);
-      setVoiceNotice(translate(lang, "মাইক্রোফোন চালু করা যায়নি। অনুমতি পরীক্ষা করুন।", "Could not start the microphone. Check its permission."));
-    }
-  };
-
   const toggleVoiceLanguage = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.suppressEmptyEnd = true;
-      recognitionRef.current.stop();
-    }
-    recognitionRef.current = null;
-    setIsRecording(false);
+    if (isRecording) stopVoice();
     const next = voiceLanguage === "bn" ? "en" : "bn";
     setVoiceLanguage(next);
     setVoiceNotice(next === "bn" ? translate(lang, "ভয়েস ইনপুটের ভাষা বাংলা করা হয়েছে।", "Voice input language set to Bangla.") : translate(lang, "ভয়েস ইনপুটের ভাষা ইংরেজি করা হয়েছে।", "Voice input language set to English."));
@@ -387,8 +308,11 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
       if (!response.ok || !payload.text) {
         if (payload.code === "not_configured") throw new Error(translate(lang, "AI চ্যাট চালু করতে সাইট মালিককে OpenAI API key ও model যোগ করতে হবে।", "AI chat is not connected yet. The site owner must configure an OpenAI API key and model."));
         if (payload.code === "rate_limited") throw new Error(translate(lang, "এই নেটওয়ার্ক থেকে অনেক বার্তা পাঠানো হয়েছে। এক মিনিট পরে আবার চেষ্টা করুন।", "Too many messages came from this network. Please wait about a minute and try again."));
+        if (payload.code === "provider_billing_inactive") throw new Error(translate(lang, "সাইটের OpenAI API বিলিং চালু নেই। এটি Jonogon লগইনের সমস্যা নয়; সাইট মালিককে OpenAI Platform-এ API বিলিং চালু করতে হবে।", "The site's OpenAI API billing is inactive. This is separate from your Jonogon login; the site owner must activate API billing in OpenAI Platform."));
+        if (payload.code === "provider_key_invalid") throw new Error(translate(lang, "সাইটের OpenAI API key আর বৈধ নয়। সাইট মালিককে key পরীক্ষা করতে হবে।", "The site's OpenAI API key is invalid. The site owner needs to check the key."));
+        if (payload.code === "provider_quota_exceeded") throw new Error(translate(lang, "OpenAI API-এর ব্যবহারসীমা শেষ হয়েছে। সাইট মালিককে বিলিং ও usage limit পরীক্ষা করতে হবে।", "The OpenAI API usage limit has been reached. The site owner needs to check billing and usage limits."));
         if (payload.code === "provider_rate_limited") throw new Error(translate(lang, "AI সেবা ব্যস্ত আছে। একটু পরে আবার চেষ্টা করুন।", "The AI service is busy. Please wait a moment and try again."));
-        if (payload.code === "provider_quota_exceeded") throw new Error(translate(lang, "AI সেবা এই মুহূর্তে অনুপলব্ধ। পরে আবার চেষ্টা করুন।", "The AI service is temporarily unavailable. Please try again later."));
+        if (payload.code === "provider_unavailable") throw new Error(translate(lang, "AI সেবা এখন অনুপলব্ধ। একটু পরে আবার চেষ্টা করুন।", "The AI service is currently unavailable. Please try again shortly."));
         if (response.status === 429) throw new Error(translate(lang, "অনেক অনুরোধ এসেছে। একটু পরে আবার চেষ্টা করুন।", "Too many requests. Please try again shortly."));
         throw new Error(translate(lang, "উত্তর পাওয়া যায়নি। আবার চেষ্টা করুন।", "No answer was received. Please try again."));
       }
@@ -403,7 +327,7 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
     } finally {
       setIsSending(false);
     }
-  }, [activeConversationId, conversations, draft, isSending, lang]);
+  }, [activeConversationId, conversations, draft, isSending, lang, setVoiceNotice]);
 
   useEffect(() => {
     if (!hasLoadedHistory || !accountReady || !pendingInitialPromptRef.current) return;
@@ -507,8 +431,8 @@ export default function CitizenAIChat({ lang, nickname }: { lang: Language; nick
               <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={onComposerKeyDown} rows={2} maxLength={6000} placeholder={translate(lang, "যেকোনো কিছু জিজ্ঞাসা করুন", "Ask anything")} aria-label={translate(lang, "আপনার বার্তা লিখুন", "Write your message")} className="max-h-36 min-h-12 w-full resize-y bg-transparent px-2 py-1.5 text-sm outline-none" style={{ color: "var(--text-main)" }} />
               <div className="flex items-center justify-between gap-2 px-1">
                 <div className="flex items-center gap-1.5">
-                  <button type="button" onClick={toggleVoiceLanguage} className="rounded-lg px-2 py-1.5 text-[10px] font-bold" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }} aria-label={voiceLanguage === "bn" ? translate(lang, "ভয়েসের ভাষা বাংলা; ইংরেজিতে বদলান", "Voice language is Bangla; switch to English") : translate(lang, "ভয়েসের ভাষা ইংরেজি; বাংলায় বদলান", "Voice language is English; switch to Bangla")}>{voiceLanguage === "bn" ? "বাংলা" : "EN"}</button>
-                  <button type="button" onClick={toggleVoice} className="rounded-lg p-2 transition hover:bg-black/5 dark:hover:bg-white/5" style={{ color: isRecording ? "var(--alert-red)" : "var(--text-muted)" }} aria-label={isRecording ? translate(lang, "শোনা বন্ধ করুন", "Stop listening") : voiceLanguage === "bn" ? translate(lang, "বাংলায় বলুন", "Speak in Bangla") : translate(lang, "ইংরেজিতে বলুন", "Speak in English")} aria-pressed={isRecording} title={isRecording ? translate(lang, "শোনা বন্ধ করুন", "Stop listening") : translate(lang, "ভয়েস ইনপুট", "Voice input")}>{isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</button>
+                  <button type="button" onClick={toggleVoiceLanguage} disabled={isRecording || isTranscribing} className="rounded-lg px-2 py-1.5 text-[10px] font-bold disabled:opacity-50" style={{ backgroundColor: "var(--primary-green-light)", color: "var(--primary-green)" }} aria-label={voiceLanguage === "bn" ? translate(lang, "ভয়েসের ভাষা বাংলা; ইংরেজিতে বদলান", "Voice language is Bangla; switch to English") : translate(lang, "ভয়েসের ভাষা ইংরেজি; বাংলায় বদলান", "Voice language is English; switch to Bangla")}>{voiceLanguage === "bn" ? "বাংলা" : "EN"}</button>
+                  <button type="button" onClick={() => { setError(""); void toggleVoice(); }} disabled={isTranscribing} className="min-h-11 min-w-11 touch-manipulation rounded-lg p-2 transition hover:bg-black/5 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-white/5" style={{ color: isRecording ? "var(--alert-red)" : "var(--text-muted)" }} aria-label={isTranscribing ? translate(lang, "কথা লিখে নেওয়া হচ্ছে", "Transcribing speech") : isRecording ? translate(lang, "শোনা বন্ধ করুন", "Stop listening") : voiceLanguage === "bn" ? translate(lang, "বাংলায় বলুন", "Speak in Bangla") : translate(lang, "ইংরেজিতে বলুন", "Speak in English")} aria-pressed={isRecording} aria-busy={isTranscribing} title={isTranscribing ? translate(lang, "কথা লিখে নেওয়া হচ্ছে", "Transcribing speech") : isRecording ? translate(lang, "শোনা বন্ধ করুন", "Stop listening") : translate(lang, "ভয়েস ইনপুট", "Voice input")}>{isTranscribing ? <LoaderCircle className="h-4 w-4 animate-spin" /> : isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}</button>
                   {voiceNotice && <span role="status" className="max-w-[180px] truncate text-[10px]" style={{ color: "var(--text-muted)" }}>{voiceNotice}</span>}
                 </div>
                 <button type="submit" disabled={!draft.trim() || isSending} className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: "var(--primary-green)" }} aria-label={translate(lang, "বার্তা পাঠান", "Send message")}><ArrowUp className="h-4 w-4" /></button>

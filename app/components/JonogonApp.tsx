@@ -20,6 +20,9 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
+  Mic,
+  MicOff,
+  LoaderCircle,
   Sun,
   Moon,
   Languages,
@@ -57,6 +60,7 @@ import OfficialServicePages, { type OfficialServicePage } from "./OfficialServic
 import CitizenAIChat, { CITIZEN_CHAT_PENDING_PROMPT_KEY } from "./CitizenAIChat";
 import PublicServiceSearch, { type PublicServiceSearchItem } from "./PublicServiceSearch";
 import ServiceFeatureCarousel from "./ServiceFeatureCarousel";
+import { useCitizenVoiceInput } from "./useCitizenVoiceInput";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/client";
 
 export type FeaturePage =
@@ -663,6 +667,8 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [citizenSearchDraft, setCitizenSearchDraft] = useState("");
   const [greetingPeriod, setGreetingPeriod] = useState<"day" | "night">("day");
+  const homeVoice = useCitizenVoiceInput(lang, (transcript) => setCitizenSearchDraft((current) => current.trim() ? `${current.trim()} ${transcript}` : transcript));
+  const cancelHomeVoiceInput = homeVoice.cancel;
   const sideMenuTriggerRef = useRef<HTMLButtonElement>(null);
   const sideMenuCloseButtonRef = useRef<HTMLButtonElement>(null);
   const settingsMenuRef = useRef<HTMLDivElement>(null);
@@ -673,6 +679,10 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
 
   // Translation helper function
   const t = (bnText: string, enText: string) => (lang === "bn" ? bnText : enText);
+
+  useEffect(() => {
+    if (activePage !== "home") cancelHomeVoiceInput();
+  }, [activePage, cancelHomeVoiceInput]);
 
   const navigateTo = (page: JonogonPage) => {
     setActivePage(page);
@@ -701,6 +711,7 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
 
   const submitCitizenSearch = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (homeVoice.isRecording || homeVoice.isTranscribing) return;
     const prompt = citizenSearchDraft.trim();
     if (!prompt) return;
     setCitizenSearchDraft("");
@@ -1566,15 +1577,20 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
                     </p>
                     <ServiceFeatureCarousel lang={lang} items={carouselItems} onSelect={openCarouselItem} />
                     <form onSubmit={submitCitizenSearch} className="mt-6 w-full max-w-3xl">
-                      <div className="flex min-h-14 items-center gap-3 rounded-2xl border px-3 py-2 shadow-sm transition focus-within:border-[#006A4E] focus-within:ring-2 focus-within:ring-[#006A4E]/15 sm:min-h-16 sm:px-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)" }}>
+                      <div className="flex min-h-14 items-center gap-2 rounded-2xl border px-2.5 py-2 shadow-sm transition focus-within:border-[#006A4E] focus-within:ring-2 focus-within:ring-[#006A4E]/15 sm:min-h-16 sm:gap-3 sm:px-4" style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)" }}>
                         <Search className="h-5 w-5 shrink-0" style={{ color: "var(--primary-green)" }} />
                         <input type="text" value={citizenSearchDraft} onChange={(event) => setCitizenSearchDraft(event.target.value)} maxLength={6000} autoComplete="off" aria-label={t("আপনার প্রশ্ন লিখুন", "Ask anything")} placeholder={t("যেকোনো কিছু জিজ্ঞাসা করুন", "Ask anything")} className="min-w-0 flex-1 bg-transparent py-2 text-sm outline-none sm:text-base" style={{ color: "var(--text-main)" }} />
-                        <button type="submit" disabled={!citizenSearchDraft.trim()} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: "var(--primary-green)" }} aria-label={t("চ্যাট শুরু করুন", "Start chat")} title={t("চ্যাট শুরু করুন", "Start chat")}>
+                        <button type="button" onClick={() => void homeVoice.toggle()} disabled={homeVoice.isTranscribing} className="inline-flex h-11 min-w-11 shrink-0 touch-manipulation items-center justify-center gap-1 rounded-xl border px-2 transition hover:bg-black/5 disabled:cursor-wait disabled:opacity-60 dark:hover:bg-white/5 sm:min-w-[68px]" style={{ borderColor: "var(--border-color)", color: homeVoice.isRecording ? "var(--alert-red)" : "var(--text-muted)" }} aria-label={homeVoice.isRecording ? t("শোনা বন্ধ করুন", "Stop recording") : t("বাংলা বা ইংরেজিতে বলুন", "Speak in Bangla or English")} aria-pressed={homeVoice.isRecording} aria-busy={homeVoice.isTranscribing} title={homeVoice.isRecording ? t("রেকর্ডিং বন্ধ করুন", "Stop recording") : t("বাংলা বা ইংরেজিতে বলুন", "Speak in Bangla or English")}>
+                          {homeVoice.isTranscribing ? <LoaderCircle className="h-5 w-5 animate-spin" /> : homeVoice.isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                          <span className="hidden text-[10px] font-bold sm:inline">BN/EN</span>
+                        </button>
+                        <button type="submit" disabled={!citizenSearchDraft.trim() || homeVoice.isRecording || homeVoice.isTranscribing} className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: "var(--primary-green)" }} aria-label={t("চ্যাট শুরু করুন", "Start chat")} title={t("চ্যাট শুরু করুন", "Start chat")}>
                           <ArrowRight className="h-4 w-4" />
                         </button>
                       </div>
                     </form>
-                    <p className="mt-3 text-[10px]" style={{ color: "var(--text-subtle)" }}>{t("ব্যক্তিগত পরিচয়পত্র নম্বর, OTP বা পাসওয়ার্ড লিখবেন না।", "Do not enter personal ID numbers, OTPs, or passwords.")}</p>
+                    {homeVoice.notice && <p role="status" aria-live="polite" className="mt-2 w-full max-w-3xl px-2 text-left text-xs leading-5" style={{ color: homeVoice.isRecording ? "var(--alert-red)" : "var(--text-muted)" }}>{homeVoice.notice}</p>}
+                    <p className="mt-3 text-[10px] leading-5" style={{ color: "var(--text-subtle)" }}>{t("লগইন ছাড়াই প্রশ্ন করতে পারবেন। ব্যক্তিগত পরিচয়পত্র নম্বর, OTP বা পাসওয়ার্ড লিখবেন না।", "You can ask without signing in. Do not enter personal ID numbers, OTPs, or passwords.")}</p>
                   </div>
                 </section>
               </>

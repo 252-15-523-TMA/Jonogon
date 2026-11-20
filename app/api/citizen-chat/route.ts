@@ -102,9 +102,13 @@ export async function POST(request: Request) {
         type: providerType,
         model,
       });
-      if (providerCode === "insufficient_quota" || providerCode === "billing_hard_limit_reached") {
+      if (providerCode === "billing_not_active" || providerType === "billing_not_active") {
+        return json({ code: "provider_billing_inactive" }, 503);
+      }
+      if (["insufficient_quota", "billing_hard_limit_reached", "usage_limit_reached"].includes(providerCode || "")) {
         return json({ code: "provider_quota_exceeded" }, 503);
       }
+      if (providerCode === "invalid_api_key" || providerType === "invalid_api_key") return json({ code: "provider_key_invalid" }, 503);
       const status = upstream.status === 429 ? 429 : 502;
       const retryAfter = upstream.headers.get("retry-after");
       return json(

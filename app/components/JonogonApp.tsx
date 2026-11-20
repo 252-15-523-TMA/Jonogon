@@ -1500,7 +1500,7 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
             </div>
           </div>
 
-          <Link href="/" onClick={(event) => { event.preventDefault(); navigateTo("home"); }} className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--primary-green)" }} aria-label={t("হোম পেজে যান", "Go to home page")} aria-current={activePage === "home" ? "page" : undefined}>
+          <Link href="/" className="absolute left-1/2 top-1/2 z-10 inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1.5 rounded-xl px-2 py-1.5 text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--primary-green)" }} aria-label={t("হোম পেজে যান", "Go to home page")} aria-current={activePage === "home" ? "page" : undefined}>
             <svg viewBox="0 0 40 40" className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true">
               <path d="M20 4c-5 6-6 12 0 18 6-6 5-12 0-18Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
               <path d="M9 11c0 7 3 11 11 13-1-7-4-11-11-13Zm22 0c-7 2-10 6-11 13 8-2 11-6 11-13Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
@@ -1576,15 +1576,14 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
 
             {activePage === "citizen-service" && (
               <section className="mx-auto w-full max-w-5xl space-y-5" aria-labelledby="citizen-service-detail-title">
-                <button
-                  type="button"
-                  onClick={() => navigateTo("home")}
+                <Link
+                  href="/"
                   className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:opacity-75"
                   style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)", color: "var(--text-main)" }}
                 >
                   <ArrowRight className="h-4 w-4 rotate-180" />
                   {t("সব সেবায় ফিরে যান", "Back to all services")}
-                </button>
+                </Link>
                 {activeCitizenService && ActiveCitizenServiceIcon ? (
                   <>
                     <header className="overflow-hidden rounded-3xl border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>

@@ -102,6 +102,12 @@ const OFFICIAL_SERVICE_PAGES: OfficialServicePage[] = [
 ];
 const isOfficialServicePage = (page: JonogonPage): page is OfficialServicePage => OFFICIAL_SERVICE_PAGES.includes(page as OfficialServicePage);
 
+type HomeNavigationLinkProps = Omit<React.ComponentProps<"a">, "href">;
+function HomeNavigationLink(props: HomeNavigationLinkProps) {
+  // eslint-disable-next-line @next/next/no-html-link-for-pages -- Force a fresh root document so stale service-page state cannot persist.
+  return <a href="/" {...props} />;
+}
+
 // Mock Data for Essential Commodities (Live Bazaar Watch)
 const BAZAAR_DATA = [
   { itemBn: "ফার্মের মুরগির ডিম (ডজন)", itemEn: "Farm Chicken Eggs (Dozen)", tcbPrice: 145, marketPrice: 160, unitBn: "ডজন", unitEn: "dozen", status: "high" },
@@ -1500,7 +1506,7 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
             </div>
           </div>
 
-          <Link href="/" className="col-span-2 row-start-2 inline-flex min-h-11 min-w-24 items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition hover:bg-black/5 active:scale-[0.98] dark:hover:bg-white/5 sm:col-span-1 sm:col-start-2 sm:row-start-1" style={{ color: "var(--primary-green)" }} aria-label={t("হোম পেজে যান", "Go to home page")} aria-current={activePage === "home" ? "page" : undefined}>
+          <HomeNavigationLink className="col-span-2 row-start-2 inline-flex min-h-11 min-w-24 items-center justify-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition hover:bg-black/5 active:scale-[0.98] dark:hover:bg-white/5 sm:col-span-1 sm:col-start-2 sm:row-start-1" style={{ color: "var(--primary-green)" }} aria-label={t("হোম পেজে যান", "Go to home page")} aria-current={activePage === "home" ? "page" : undefined}>
             <svg viewBox="0 0 40 40" className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden="true">
               <path d="M20 4c-5 6-6 12 0 18 6-6 5-12 0-18Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
               <path d="M9 11c0 7 3 11 11 13-1-7-4-11-11-13Zm22 0c-7 2-10 6-11 13 8-2 11-6 11-13Z" fill="#fff" stroke="#15966f" strokeWidth="1.4" />
@@ -1509,7 +1515,7 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
               <path d="M7 34c4-2 8-2 13 0 5-2 9-2 13 0" fill="none" stroke="#15966f" strokeLinecap="round" strokeWidth="1.6" />
             </svg>
             <span>{t("হোম", "Home")}</span>
-          </Link>
+          </HomeNavigationLink>
 
           <div className="col-start-2 row-start-1 flex items-center justify-self-end gap-1.5 sm:col-start-3 sm:gap-2">
             {accountUser ? (
@@ -1538,9 +1544,9 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
             {activePage === "chat" && (
               <section className="space-y-4" aria-label={t("নাগরিক সেবা চ্যাট", "Citizen service chat")}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <button type="button" onClick={() => navigateTo("home")} className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--text-muted)" }}>
+                  <HomeNavigationLink className="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold transition hover:bg-black/5 dark:hover:bg-white/5" style={{ color: "var(--text-muted)" }}>
                     <ArrowRight className="h-3.5 w-3.5 rotate-180" />{t("হোমে ফিরুন", "Back to home")}
-                  </button>
+                  </HomeNavigationLink>
                   <span className="inline-flex items-center gap-2 text-[10px] font-semibold" style={{ color: "var(--text-muted)" }}><History className="h-3.5 w-3.5" style={{ color: "var(--primary-green)" }} />{t("সেটিংস থেকে চ্যাটের ইতিহাস খুলুন", "Open Chat history from Settings")}</span>
                 </div>
                 <CitizenAIChat lang={lang} nickname={greetingName} />
@@ -1576,14 +1582,13 @@ export default function JonogonApp({ initialPage = "home", initialServiceId }: {
 
             {activePage === "citizen-service" && (
               <section className="mx-auto w-full max-w-5xl space-y-5" aria-labelledby="citizen-service-detail-title">
-                <Link
-                  href="/"
+                <HomeNavigationLink
                   className="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition hover:opacity-75"
                   style={{ borderColor: "var(--border-color)", backgroundColor: "var(--surface)", color: "var(--text-main)" }}
                 >
                   <ArrowRight className="h-4 w-4 rotate-180" />
                   {t("সব সেবায় ফিরে যান", "Back to all services")}
-                </Link>
+                </HomeNavigationLink>
                 {activeCitizenService && ActiveCitizenServiceIcon ? (
                   <>
                     <header className="overflow-hidden rounded-3xl border shadow-sm" style={{ backgroundColor: "var(--surface)", borderColor: "var(--border-color)" }}>
